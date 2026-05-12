@@ -1,0 +1,55 @@
+Admin :
+
+Réunion les Lundi Matin ou Vendredi
+Responsable de la réunion : je planifie et définie l'ordre du jour (en avance si le prof doit lire du code ou un document pour qu'on en parle)
+
+Document Initiale à redigier :
+Définition de mon TB de ma perspective (template Typst)
+Planification initialle obligatoire
+Planification réelle optionnelle
+
+Signature feuille bachelor 15 mai (à voir avec le prof)
+
+
+
+Technique :
+
+    Données :
+        -  3 et 4 tera de données samplées a 40 khz : Son ambiant et accéleromètre
+        - Grosse questions : à quel moment changer les lames
+        - ce Qu'on à :
+            - Quel alliage est en train d'etre usiné
+            - Paths qui enlève plus de matière ou moins , Paths de finition
+            - Quand ils les changent (il les changent trop tot )
+            - Vitesse réelle et de consigne
+            - Couple
+        - Ils changent trop tot leur lames et pensent pouvoir le faire 2 à 3 fois plus : ils le font environ 2 à 3 fois par jour
+        - Les stocker sur un SSD externe (prendre celui de la maison)
+
+- Ce qu'ils ont fait pour l'instant :
+
+    - Correlation entre l'usure des lames et le couple : Prédire le couple avec d'autres données
+
+
+Phases :
+    Premières semaine :
+        Analyse profonde & visulisation des données
+        Explorer l'êtat de l'art
+        Production du document du début du projet : https://github.com/hei-templates/hei-synd-prjspec/
+        Venir avec le disque dur à moi pour mecredi 13.05.2026 : en salle 23n313 (venir pas entre 10h et 11h il est pas la)
+        Document à rendre pour le lundi 18.05.2025
+        Création du github en privé !
+
+
+
+
+
+
+
+
+
+
+
+
+
+
