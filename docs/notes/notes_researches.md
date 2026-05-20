@@ -1,0 +1,9 @@
+- **Temporal Fusion Transformer (TFT)** : Excellente architecture basée sur l'attention, capable d'intégrer des variables externes (comme la vitesse de broche ou le type de matériau usiné) en plus du signal du capteur. : https://arxiv.org/abs/1912.09363
+
+- **LSTM-AE (LSTM Autoencoder)** : Un classique très robuste pour les données de capteurs (vibrations, acoustique). Parfait pour repérer des anomalies dans des séquences temporelles sans avoir besoin de labels. : https://www.striim.com/blog/lstm-autoencoder-anomaly-detection/
+
+- **Transformers-AE (Transformer Autoencoder)** : L'évolution du LSTM-AE. Utilise le mécanisme d'attention (au lieu de la récurrence) pour compresser et reconstruire le signal. Mieux adapté que le LSTM pour capter des dépendances très lointaines dans le signal (ex: un choc à t=1s qui a des répercussions à t=150s) et souvent plus rapide à entraîner.
+
+- **Autoencodeur 1D-CNN** : Très efficace pour analyser les fréquences directement depuis le signal temporel brut (ou une FFT). Les convolutions 1D agissent comme des filtres fréquentiels apprenables. Souvent plus léger et plus rapide que les LSTM/Transformers pour la détection pure de signatures vibratoires.
+
+- **TSFEL (Fenêtre glissante) + Isolation Forest** : L'approche "Machine Learning classique" (non Deep Learning). TSFEL extrait statistiquement les caractéristiques (features) sur des blocs de temps (fenêtres), et l'Isolation Forest isole les blocs anormaux. Très explicable, rapide à mettre en place, parfait comme "baseline" (modèle de référence) pour prouver que le concept fonctionne avant de sortir l'artillerie lourde.
