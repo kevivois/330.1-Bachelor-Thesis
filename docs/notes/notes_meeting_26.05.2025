@@ -1,0 +1,18 @@
+Reunion point a aborder :
+
+- Montrer les trouvailles et les algorythmes recherchés
+- Questionner sur les timestamp qui diffère (timestamp debut & fin du sensor_file vs timestamp de chaque ligne du aggregated )
+
+
+
+1)
+- TSFEL + Isolation Forest
+
+2) Autoencodeur (CNN2d,1d,LSTM)
+3) CNN-LSTM Autoencodeur
+
+
+
+Questions :
+
+Entrainer depuis 0 ? ou fine-tuner
