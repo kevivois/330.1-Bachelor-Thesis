@@ -31,6 +31,64 @@
     * **Prédictions probabilistes (Multi-quantiles) :** Le modèle ne prédit pas une valeur unique, mais des intervalles de confiance (ex: quantiles P10, P50, P90).
 * **Application au diagnostic (Analyse des résidus) :** Le TFT génère une **bande de tolérance dynamique** (élastique) qui s'adapte au contexte d'usinage. Tant que le signal réel (le couple mesuré) reste à l'intérieur de cet intervalle de confiance, l'outil est considéré comme sain. Dès que la courbe réelle sort de la bande, une anomalie ou une usure critique est détectée.
 
+### 1.1 Classements par type de variables
+
+- *Static Covariates* : métadonnées qui ne changent jamais au cours d'un cycle , utilie pour contextualiser le modèle, il va adapter ses poids selon (dans notre cas) le type d'alliage par exemple
+- *Know Past & Futures Inputs* : variables qui changent dans le temps, mais dont on connais déjà la valeur : la vitesse de rotation des broches et la position
+- *Observed Past Inputs* : singaux physiques mesurés en temps reel liées à l'accelerometre , le son et le couple actuel , ils servent d'indicateur d'état de degradation au model , TFT analyse l'historique récent
+
+### 1.2 Composents clés 
+
+[Inputs] ──> [GRN] ──> [Variable Selection] ──> [Sequence-to-Sequence]
+
+#### 1.3 le bloc GRN (Gated residual networks)
+
+Les GRN sont utilisés à plusieurs niveaux de l’architecture TFT pour rendre le modèle plus flexible. Grâce aux connexions résiduelles (skip connections), certaines couches peuvent être contournées si elles ne sont pas utiles. Cela permet au modèle de mieux généraliser, surtout avec des données bruitées ou peu nombreuses, tout en réduisant le nombre de paramètres et les calculs nécessaires.
+
+#### 1.4 Variable Selection
+Un bloc de sélection de variables est utilisé pour chaque type d’entrée : variables statiques, données passées et données futures connues.
+Ces blocs apprennent automatiquement l’importance de chaque variable afin de donner plus de poids aux informations les plus utiles. Les données sont ensuite transformées (variables continues ou catégorielles) avant d’être envoyées à la couche Sequence-to-Sequence.
+
+Le vecteur de contexte externe provient du bloc des variables statiques, donc il n’est pas réutilisé dans leur propre bloc de sélection.
+
+#### 1.5 Sequence-to-Sequence
+Dans le TFT, l’encodage positionnel classique des Transformers est remplacé par une couche Sequence-to-Sequence basée sur des LSTM, mieux adaptée aux séries temporelles.
+Grâce aux connexions récurrentes, cette couche capture les dépendances et motifs temporels locaux.
+
+Les vecteurs de contexte servent à initialiser les états internes du premier LSTM et sont aussi utilisés dans la couche de static enrichment pour ajouter des informations statiques aux représentations temporelles apprises.
+
+#### 1.6 Static Enrichment (L'enrichissement statique)
+Ce bloc intervient immédiatement après la couche Sequence-to-Sequence. Il utilise à nouveau les vecteurs de contexte issus des métadonnées statiques (comme le type d'alliage ou l'ID du cycle) pour venir infuser cette information fixe directement au cœur des représentations temporelles locales générées par les LSTM. 
+
+Techniquement, cela se fait via un bloc GRN qui applique une transformation conditionnée par le contexte statique. Cette étape garantit que le modèle interprète les variations temporelles (par exemple, une hausse de l'écart-type vibratoire) différemment selon le scénario physique global (Usinage du Titane vs Aluminium).
+
+#### 1.7 Temporal Self-Attention (L'attention temporelle multi-têtes interprétable)
+Une fois les fonctionnalités locales enrichies par le contexte statique, elles sont envoyées dans le cœur du Transformer : le mécanisme d'auto-attention. Contrairement aux Transformers classiques (comme le Multi-Head Attention standard), le TFT utilise une version modifiée appelée *Interpretable Multi-Head Attention*.
+
+Dans une architecture standard, chaque tête d'attention regarde des parties différentes du temps, ce qui rend l'analyse des poids d'attention impossible à interpréter pour un humain. Le TFT résout ce problème en partageant les poids d'attention entre toutes les têtes. 
+
+Son rôle est de capturer les dépendances temporelles à long terme. Il permet au modèle de lier un événement passé lointain (comme un micro-écaillage de l'outil survenu 15 minutes plus tôt, visible dans le Kurtosis) avec la dérive actuelle du signal pour ajuster sa trajectoire de prédiction. Ce bloc génère une matrice de poids qui permet de tracer des graphiques montrant exactement à quels instants du passé le modèle a "regardé" pour prendre sa décision.
+
+#### 1.8 Position-wise Feed-Forward (Le post-traitement des caractéristiques)
+Après le passage dans la couche d'attention, le signal traverse une structure Feed-Forward finale, encapsulée dans un bloc GRN. 
+
+Son rôle est d'appliquer des transformations non-linéaires supplémentaires sur les vecteurs combinés (locaux et globaux) afin de finaliser l'extraction des caractéristiques de haut niveau. La présence de la porte de contournement (GLU) dans ce GRN final permet de s'assurer que si la couche d'attention long terme n'a rien apporté de pertinent pour une séquence donnée, le signal issu du LSTM local peut être priorisé sans distorsion.
+
+#### 1.9 Quantile Outputs (La prédiction probabiliste du couple)
+La dernière couche du TFT est une couche de projection linéaire qui ne prédit pas une valeur unique (point forecast), mais une série de quantiles (par exemple, les quantiles 10%, 50% et 90%). 
+
+* **Le quantile 50% ($q_{0.5}$)** représente la prédiction médiane, soit la valeur de couple la plus probable attendue sur la broche.
+* **Les quantiles 10% ($q_{0.1}$) et 90% ($q_{0.9}$)** encadrent cette prédiction pour former un intervalle de confiance dynamique.
+
+En milieu industriel, cette approche probabiliste est indispensable. Si l'interface outil-matière devient instable (broutement, vibrations de frottement), l'écart entre le quantile 10% et le quantile 90% va s'élargir brutalement. Cette augmentation de l'incertitude fournit un indicateur de défaillance précoce bien plus riche et sécurisé qu'une simple courbe de prédiction moyenne.
+
+---
+
+### 1.10 Schéma Global du Flux de Données
+
+Pour résumer graphiquement le voyage de tes features TSFEL et de tes métadonnées à travers le TFT, voici l'enchaînement logique du traitement :
+
+
 ---
 
 ## 2. NBEATSX (Neural Basis Expansion Analysis with Exogenous variables)

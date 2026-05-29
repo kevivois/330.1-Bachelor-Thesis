@@ -14,4 +14,6 @@ dependencies = [
     "polars>=1.41.0",
     "pyarrow>=24.0.0",
     "scipy>=1.17.1",
+    "tqdm>=4.67.3",
+    "tsfel>=0.2.0",
 ]
