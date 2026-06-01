@@ -16,4 +16,5 @@ dependencies = [
     "scipy>=1.17.1",
     "tqdm>=4.67.3",
     "tsfel>=0.2.0",
+    "tsfresh>=0.21.2",
 ]

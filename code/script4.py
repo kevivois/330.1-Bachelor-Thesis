@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('TkAgg')
 import polars as pl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,50 +9,45 @@ from tqdm import tqdm
 import os
 
 
-import tsfel
+from tsfresh import extract_features,select_features,extract_relevant_features
+from tsfresh.feature_extraction import EfficientFCParameters
 
-def get_custom_tsfel_cfg(fs=40000):
-    return {
-        'statistical': {
-            'Min': {'parameters': '', 'function': 'tsfel.calc_min', 'use': 'yes'},
-            'Max': {'parameters': '', 'function': 'tsfel.calc_max', 'use': 'yes'},
-            'Mean': {'parameters': '', 'function': 'tsfel.calc_mean', 'use': 'yes'},
-            'Median': {'parameters': '', 'function': 'tsfel.calc_median', 'use': 'yes'},
-            'Standard deviation': {'parameters': '', 'function': 'tsfel.calc_std', 'use': 'yes'},
-            'Kurtosis': {'parameters': '', 'function': 'tsfel.kurtosis', 'use': 'yes'},
-            'Skewness': {'parameters': '', 'function': 'tsfel.skewness', 'use': 'yes'}
-        },
-        'temporal': {
-            'Zero crossing rate': {'parameters': '', 'function': 'tsfel.zero_cross', 'use': 'yes'}
-        },
-        'spectral': {
-            'Spectral centroid': {'parameters': {'fs': fs}, 'function': 'tsfel.spectral_centroid', 'use': 'yes'},
-            'Spectral roll-off': {'parameters': {'fs': fs}, 'function': 'tsfel.spectral_roll_off', 'use': 'yes'}
-        }
-    }
 
 
 
 def process(args):
-        
-        row, basepath, cols, points_per_sec = args
-        
-        sensor_file = row["sensor_file"]
+    row, basepath, cols, points_per_sec = args
+    sensor_file = row["sensor_file"]
 
-        sensor_df = pl.scan_parquet(basepath + "/" + sensor_file)
-        
-        #cfg = tsfel.get_features_by_domain(["statistical","temporal","spectral"])
-
-        summary = pl.from_pandas(tsfel.time_series_features_extractor(get_custom_tsfel_cfg(points_per_sec), sensor_df.select(cols).collect().to_pandas(), fs=points_per_sec, window_size=points_per_sec)).lazy().with_row_index("idx").with_columns(pl.lit(sensor_file).alias("sensor_file"))
-        timestamp_summary = sensor_df.select(["timestamp","time"]).with_row_index("idx").with_columns((pl.col("idx")//points_per_sec).cast(pl.UInt32).alias("group")).group_by("group").agg(
-            pl.col("timestamp").min().alias("timestamp"),
-            pl.col("time").min().alias("time")
-        )
-        meta = pl.DataFrame([row]).lazy()
-
-        joined  = summary.join(other=meta, on="sensor_file", how="left")
-        joined = joined.join(other=timestamp_summary,how="cross")
-        return joined
+    sensor_df = pl.scan_parquet(basepath + "/" + sensor_file)
+    data_pd = sensor_df.select(cols).collect().to_pandas()
+    
+    data_pd['id'] = np.arange(len(data_pd)) // points_per_sec
+    data_pd['time_idx'] = np.arange(len(data_pd)) % points_per_sec
+    
+    extracted_features_pd = extract_features(
+        data_pd, 
+        column_id='id', 
+        column_sort='time_idx',
+        default_fc_parameters=EfficientFCParameters(),
+        n_jobs=1, 
+        disable_progressbar=True
+    )
+    
+    summary = pl.from_pandas(extracted_features_pd.reset_index()).lazy()
+    summary = summary.with_columns(pl.lit(sensor_file).alias("sensor_file"))
+    
+    timestamp_summary = sensor_df.select(["timestamp","time"]).with_row_index("idx").with_columns(
+        (pl.col("idx") // points_per_sec).cast(pl.Int64).alias("index")
+    ).group_by("index").agg(
+        pl.col("timestamp").min().alias("timestamp"),
+        pl.col("time").min().alias("time"),
+    )
+    
+    meta = pl.DataFrame([row]).lazy()
+    joined = summary.join(other=meta, on="sensor_file", how="left")
+    joined = joined.join(other=timestamp_summary, on="index", how="left")
+    return joined
 
 
 def create_csv_file(output_filename):
@@ -70,11 +65,11 @@ def create_csv_file(output_filename):
     dfs_extracted = []
     
     with ThreadPool(processes=os.cpu_count() - 2) as pool: 
-        for chunk_df in tqdm(pool.imap_unordered(process, tasks), total=len(tasks), desc="Extraction TSFEL"):
+        for chunk_df in tqdm(pool.imap_unordered(process, tasks), total=len(tasks), desc="Extraction TSFEL",unit="file"):
             dfs_extracted.append(chunk_df)
     
     
-    result = pl.concat(dfs_extracted)
+    result = pl.concat(dfs_extracted).collect()
     
     result.write_csv(f"{output_filename}")
 
@@ -82,9 +77,9 @@ def create_csv_file(output_filename):
     
     
     
-def plot_csv():
+def plot_csv(filename):
 
-    result = pl.scan_csv("test.csv")
+    result = pl.scan_csv(filename)
 
     data = result.filter(pl.col("ToolIdx") == 2).with_row_index("x").collect()
 
@@ -110,17 +105,17 @@ def plot_csv():
 
     axes[1].scatter(
         data["x"],
-        data["Sound_min"],
+        data["Sound__mean"],
         c=color_codes,
         cmap="tab10",
         s=5,
-        label="Sound Min"
+        label="Sound Minimum"
     )
     axes[1].legend()
 
     axes[2].scatter(
         data["x"],
-        data["Sound_max"],
+        data["Sound__maximum"],
         c=color_codes,
         cmap="tab10",
         s=5,
@@ -128,7 +123,6 @@ def plot_csv():
     )
     axes[2].legend()
 
-    # Add colorbar for pass_type mapping
     sm = plt.cm.ScalarMappable(cmap="tab10", norm=plt.Normalize(vmin=0, vmax=len(unique_types)-1))
     sm.set_array([])
     cbar = plt.colorbar(sm, ax=axes, label="Pass Type")
@@ -154,9 +148,8 @@ def plot_csv():
     
     
 def main():
+    #plot_csv("test.csv")
     create_csv_file("tsfel_extracted.csv")
-    #print(tsfel.get_features_by_domain(["statistical","temporal","spectral"]))
-
 
 if __name__ == "__main__":
     main()
