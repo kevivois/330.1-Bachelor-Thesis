@@ -9,7 +9,7 @@ from tqdm import tqdm
 import os
 
 
-from tsfresh import extract_features,select_features,extract_relevant_features
+from tsfresh import extract_features,select_features
 from tsfresh.feature_extraction import EfficientFCParameters
 
 
@@ -24,7 +24,6 @@ def process(args):
     
     data_pd['id'] = np.arange(len(data_pd)) // points_per_sec
     data_pd['time_idx'] = np.arange(len(data_pd)) % points_per_sec
-    
     extracted_features_pd = extract_features(
         data_pd, 
         column_id='id', 
@@ -33,9 +32,11 @@ def process(args):
         n_jobs=1, 
         disable_progressbar=True
     )
-    
+
     summary = pl.from_pandas(extracted_features_pd.reset_index()).lazy()
     summary = summary.with_columns(pl.lit(sensor_file).alias("sensor_file"))
+    
+    
     
     timestamp_summary = sensor_df.select(["timestamp","time"]).with_row_index("idx").with_columns(
         (pl.col("idx") // points_per_sec).cast(pl.Int64).alias("index")
@@ -50,7 +51,7 @@ def process(args):
     return joined
 
 
-def create_csv_file(output_filename):
+def create_csv_file(output_filename,target="cutting_depth"):
     basepath = "/run/media/kevivois/T7/BACHELOR/"
     filepath = basepath + "aggregated.parquet"
 
@@ -58,6 +59,11 @@ def create_csv_file(output_filename):
 
     aggregated = pl.scan_parquet(filepath)
     cols = ["AccX", "AccY", "AccZ", "Sound"]
+    
+    aggregated = aggregated.sort("sensor_file").with_columns(
+        pl.col(target).shift(-1).alias("y")
+    )
+
 
     rows = aggregated.collect().to_dicts()
     
@@ -69,11 +75,18 @@ def create_csv_file(output_filename):
             dfs_extracted.append(chunk_df)
     
     
-    result = pl.concat(dfs_extracted).collect()
+    result = pl.concat(dfs_extracted).lazy()
+    target_col = result.collect().get_column("y")
+    meta_cols = ["sensor_file", "timestamp", "time", "y"]
+    x = result.drop(meta_cols).rename({"id":"index"})
+    selected_features = select_features(X=x.collect().to_pandas(),y=target_col.to_pandas())
     
-    result.write_csv(f"{output_filename}")
+    output = pl.concat([pl.from_pandas(selected_features),result.select(meta_cols)],how="horizontal").collect()
+    
+    
+    output.write_csv(f"{output_filename}")
 
-    print(result)
+    print(output)
     
     
     
@@ -136,7 +149,7 @@ def plot_csv(filename):
 
 
     data = data.with_columns(
-        (pl.col("PassNumber") != pl.col("PassNumber").shift()).alias("change")
+        (pl.col("PassNumber") != pl.col("PassNumber").shift(1)).alias("change")
     )
     ''
     change_points = data.filter(pl.col("change"))["x"].to_list()
@@ -149,7 +162,7 @@ def plot_csv(filename):
     
 def main():
     #plot_csv("test.csv")
-    create_csv_file("tsfel_extracted.csv")
+    create_csv_file("tsfel_extracted.csv","cutting_depth")
 
 if __name__ == "__main__":
     main()
