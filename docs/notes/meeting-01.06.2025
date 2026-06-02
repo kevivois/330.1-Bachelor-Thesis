@@ -1,0 +1,38 @@
+Meeting - 01.06.2025
+
+with carrino
+
+-------
+
+
+Fenetre avec overlap sur l'ancienne
+
+bien séparer train et test set
+
+gridsearch ?
+
+
+optuna ?
+
+lors de fin de milestone rapport : push
+
+
+Pourquoi ces features et pas les autres , critères mesurables de comparaison (! important on va me challenger la dessus pendant les presentations finale) , il faut que ma justification mettent les gens d'accord
+
+
+time series libraires that tests and remove unrevelant features (like TSFRESH ) to investigate
+
+
+
+Etapes post-reunion mini plan :
+----
+
+- Feature extraction fonctionnelle sur disco avec TSFRESH
+
+- Code avec TFT/NBeaTSx fonctionnelle (pourquoi l'un et l'autre , comparaison)
+
+- Selections d'hyperparamètres (optuna ?)
+
+
+- Documentation parallelel de tout cela pour le 08.06.2026
+

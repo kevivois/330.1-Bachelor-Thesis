@@ -1,0 +1,12 @@
+Min
+Max
+Mean
+Median
+std
+- kurtosis : mesure la forme de la distribution d'un jeu de données , > 0 courbe plus pointue ou centrée et les queues de distribution sont plus épaisses , plus de valeur extremes, < 0 : courbe extremement plate , moins         de valeur extreme
+Skeweness : mesure le degré de déformation ou de déséquilibre d'une distribution de données par rapport à une courbe normale
+
+Zero crossing rate : taux de passage par zéro
+
+Spectral centroid : point d'équilibre où se concentre l'énergie du son , le centre de gravité du spectre de fréquences , micro choque genere des haute fréquences -> le centre de gravité est déplacé vers de plus hautes fréquences
+Spectral roll-off : est la fréquence en dessous de laquelle se trouve un certain pourcentage de l'énergie totale du spectre ( exemple 95%: 4000hz => 95% des fréquence se trouvent en dessous de 4000 hz)
