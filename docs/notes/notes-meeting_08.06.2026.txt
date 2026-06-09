@@ -1,0 +1,60 @@
+meeting - 08.06.2026 - 11h
+
+présents :
+
+    - kevin voisin
+    - fransesco carrino
+
+
+note preparation meeting :
+
+Est-ce que je peux avoir le couple pour chaque point du sensor_file (40khz)
+
+si pas possible :
+
+Cela fausse le modèle (TFT) car : meme valeur a prédire avec signaux différents
+
+
+Est-ce mieux de résumer toute la passe ? et de faire un modèle plus petit LSTM (baseline ?)
+
+Ou est-ce possible d'obtenir ces valeurs de couple à chaque 1/40000s ?
+
+
+Rapport en cours (un peu de retard) => reflexion sur une bonne première analyse stastiques et plot:
+
+Comment montrer que y'a de l'information dans le signal (est-ce possible ?)
+
+
+feature extractions :
+
+utiliser tsfel features extraction with tsfresh features selection
+
+
+
+
+
+
+
+
+
+
+
+
+==========================================
+notes meeting :
+
+Demander a remy pour obtenir les informatiosn du couple pour chaque point du sensor_file
+
+En attendant : essayer de résumer par sensor_file puis construire un petit modèle (LSTM ?)
+
+séquencer en 1/3,1/3,1/3 ?
+
+essayet t-SNE à la place de PCA
+
+utiliser le hurst exponent en plus dans les features
+
+
+
+
+
+
