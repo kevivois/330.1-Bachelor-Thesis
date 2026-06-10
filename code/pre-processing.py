@@ -3,12 +3,11 @@ matplotlib.use('TkAgg')
 import polars as pl
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import tsfel
 from concurrent.futures import ProcessPoolExecutor  
 from tqdm import tqdm
 import os
-import json
+import polars.selectors as cs
 from tsfresh import select_features
 
 
@@ -26,7 +25,7 @@ def process(args):
     
     cfg = tsfel.get_features_by_domain()
     
-    features_whitelist = {
+    features = {
         'temporal': ['Peak to peak distance', 'Zero crossing rate'],
         'statistical': ['Mean', 'Standard deviation', 'Max', 'Min', 'Variance', 'Root mean square'],
         'spectral': ['Spectral centroid', 'Spectral roll-off'],
@@ -34,9 +33,9 @@ def process(args):
         'fractal': ['']
     }
     
-    for domain, allowed_features in features_whitelist.items():
+    for domain, feature in features.items():
         if domain in cfg:
-            cfg[domain] = {k: v for k, v in cfg[domain].items() if k in allowed_features}
+            cfg[domain] = {k: v for k, v in cfg[domain].items() if k in feature}
             for feature_name in cfg[domain]:
                 cfg[domain][feature_name]['use'] = 'yes'
 
@@ -99,7 +98,7 @@ def create_csv_file(output_filename, target="Broche/StatusTorqueData.ActualTorqu
     custom_meta = [c for c in result.columns if c in rows[0].keys() and c != "y"]
     meta_cols = ["id", "sensor_file", "timestamp", "time", "y"] + custom_meta
     meta_cols = list(set(meta_cols))
-    import polars.selectors as cs
+    
     x_pd = result.drop(meta_cols).select(cs.numeric()).to_pandas().astype(np.float64)
     x_pd.index = result.get_column("id").to_numpy()
     
