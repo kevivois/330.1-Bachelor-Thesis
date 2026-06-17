@@ -1,0 +1,24 @@
+{
+    "experiment_timestamp": "2026-06-10T18:41:33.564679",
+    "model_hyperparameters": {
+        "model_type": "GRU",
+        "input_chunk_length": 2,
+        "output_chunk_length": 1,
+        "hidden_dim": 4,
+        "n_rnn_layers": 1,
+        "batch_size": 16,
+        "dropout": 0.5,
+        "n_epochs": 100
+    },
+    "dataset_splits": {
+        "train_percentage": 60.0,
+        "val_percentage": 25.0,
+        "test_percentage": 15.000000000000002
+    },
+    "evaluation_metrics": {
+        "MSE": 82438.22819534507,
+        "RMSE": 287.1205812813583,
+        "MAE": 227.94435724928638,
+        "R2_Score": -0.12017007425394821
+    }
+}

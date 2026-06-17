@@ -1,11 +1,11 @@
 import polars as pl
-from models.LSTMModel import LSTMModel
+from models.v2.PyTorchLSTM import PyTorchLSTM
 def train():
     
-    data_path = "data/v2/tsfel_extracted_new.csv"
+    data_path = "data/v4/tsfel_extracted_new.csv"
     data = pl.scan_csv(data_path).lazy()
-    model = LSTMModel()
-    model.start_training(data,"y",saving=False)
+    model = PyTorchLSTM()
+    model.train(data)
 
 if __name__ == "__main__":
     train()
