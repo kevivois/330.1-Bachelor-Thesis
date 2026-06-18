@@ -1,0 +1,12 @@
+{
+    "experiment_timestamp": "2026-06-18T13:24:53.056906",
+    "model_hyperparameters": {
+        "model_type": "LSTM",
+        "input_chunk_length": 10,
+        "output_chunk_length": 1,
+        "hidden_dim": 64,
+        "n_rnn_layers": 1,
+        "batch_size": 64,
+        "dropout": 0.3,
+        "n_epochs": 100,
+        "data_pass_type": 

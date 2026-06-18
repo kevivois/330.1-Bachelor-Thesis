@@ -10,6 +10,8 @@ import datetime
 from pathlib import Path
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
+
+
 class PyTorchLSTMNetwork(nn.Module):
     def __init__(self, input_dim, hidden_dim, n_layers, dropout):
         super().__init__()
@@ -18,17 +20,19 @@ class PyTorchLSTMNetwork(nn.Module):
             hidden_size=hidden_dim,
             num_layers=n_layers,
             batch_first=True,
-            dropout=dropout if n_layers > 1 else 0.0
+            dropout=0.0
         )
+        self.dropout_layer = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_dim, 1)
         
     def forward(self, x):
         out, _ = self.lstm(x)
-        out = self.fc(out[:, -1, :])
+        out = self.dropout_layer(out[:, -1, :])
+        out = self.fc(out)
         return out
 
 class PyTorchLSTM:
-    def __init__(self, input_chunk_length=50, hidden_dim=8, n_rnn_layers=1, batch_size=32, n_epochs=100, dropout=0.3):
+    def __init__(self, input_chunk_length=15, hidden_dim=16, n_rnn_layers=1, batch_size=64, n_epochs=400, dropout=0.3):
         self.model_name = "Pure_PyTorch_LSTM"
         self.base_images_path = "images/v2/models/current"
         
@@ -40,17 +44,18 @@ class PyTorchLSTM:
             "n_rnn_layers": n_rnn_layers,
             "batch_size": batch_size,
             "dropout": dropout,
-            "n_epochs": n_epochs
+            "n_epochs": n_epochs,
+            "data_pass_type":[],
+            "entry_columns":[]
         }
         
         self.meta_cols = [
             "sensor_file", "timestamp", "time", "ToolIdx", "plate_id", "DB_PASSES/NUMERO_OF", "PassID", "start_pos", "end_pos", "DB_PASSES/NUMERO_PASSE", 
             "timestamp_right", "y"
         ]
-        
         self.scaler_x = StandardScaler()
         self.scaler_y = StandardScaler()
-        self.train_split, self.val_split = 0.60, 0.80
+        self.train_split, self.val_split = 0.65, 0.80
         
         self.model = None
         self.res_mse = 0.0
@@ -72,9 +77,14 @@ class PyTorchLSTM:
             Y_seq.append(Y_np[i + lookback])
         return np.array(X_seq), np.array(Y_seq)
 
-    def train(self, df_lazy: pl.LazyFrame, Y_dummy_param=None):
-        df_cleansed = df_lazy.collect().to_dummies(columns=["DB_PASSES/SELECTION_ALLIAGE", "pass_type"]).sort("timestamp")
+    def train(self, df_lazy: pl.LazyFrame):
+        df_cleansed = df_lazy.collect().to_dummies(columns=["DB_PASSES/SELECTION_ALLIAGE"]).sort("timestamp")
+        self.config_params["data_pass_type"] = df_cleansed.select("pass_type").unique()["pass_type"].to_list()
+        self.config_params["entry_columns"] = [str(c) for c in df_cleansed.get_columns()]
+        df_cleansed = df_cleansed.drop(["pass_type"])
+        #df_cleansed = df_lazy.to_dummies(columns=["pass_type"])
         df_cleansed = df_cleansed.drop_nulls(subset=["y"]).fill_null(0.0)
+
         
         feature_cols = [c for c in df_cleansed.columns if c not in self.meta_cols]
         
@@ -107,11 +117,11 @@ class PyTorchLSTM:
         )
         
         criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001, weight_decay=1e-4)
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=0.001, weight_decay=1e-4)
         
         train_losses, val_losses = [], []
         best_val_loss = float('inf')
-        patience, patience_counter = 15, 0
+        patience, patience_counter = -1, 0
         checkpoint_path = Path("best_model_tmp.pt")
         
         for epoch in range(self.config_params["n_epochs"]):
@@ -138,19 +148,20 @@ class PyTorchLSTM:
             train_losses.append(t_loss)
             val_losses.append(v_loss)
             
-            print(f"Epoch [{epoch+1:3d}/{self.config_params['n_epochs']}] — Train Loss: {t_loss:.6f} — Val Loss: {v_loss:.6f}", end="")
+            print(f"Epoch [{epoch+1:3d}/{self.config_params['n_epochs']}] Train Loss: {t_loss:.6f} — Val Loss: {v_loss:.6f}", end="")
             
             if v_loss < best_val_loss:
                 best_val_loss = v_loss
                 patience_counter = 0
                 torch.save(self.model.state_dict(), checkpoint_path)
-                print(" -> 🔥 Best model saved!")
+                print(" -> Best model saved!")
             else:
-                patience_counter += 1
-                print(f" -> Patience: {patience_counter}/{patience}")
-                if patience_counter >= patience:
-                    print("Early stopping triggered.")
-                    break
+                if patience != -1:
+                    patience_counter += 1
+                    print(f" -> Patience: {patience_counter}/{patience}")
+                    if patience_counter >= patience:
+                        print("Early stopping triggered.")
+                        break
                     
         if checkpoint_path.exists():
             self.model.load_state_dict(torch.load(checkpoint_path))

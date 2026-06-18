@@ -1,0 +1,28 @@
+{
+    "experiment_timestamp": "2026-06-18T13:36:47.438717",
+    "model_hyperparameters": {
+        "model_type": "LSTM",
+        "input_chunk_length": 10,
+        "output_chunk_length": 1,
+        "hidden_dim": 128,
+        "n_rnn_layers": 1,
+        "batch_size": 64,
+        "dropout": 0.3,
+        "n_epochs": 100,
+        "data_pass_type": [
+            "Finishing",
+            "Pre-Finishing"
+        ]
+    },
+    "dataset_splits": {
+        "train_percentage": 65.0,
+        "val_percentage": 19.999999999999996,
+        "test_percentage": 15.000000000000002
+    },
+    "evaluation_metrics": {
+        "MSE": 17120.186230416548,
+        "RMSE": 130.8441295221782,
+        "MAE": 76.62018916414377,
+        "R2_Score": 0.34397804869529947
+    }
+}

@@ -11,10 +11,7 @@ def compute_pca_3d(data):
     if len(data) == 0:
         return None, None, None
     
-    target_col = "Broche/StatusTorqueData.ActualTorque"
-    data = data.with_columns(pl.col(target_col).shift(-1).alias("y")).drop_nulls(subset=["y"])
-
-    meta_cols = ["id", "sensor_file", "timestamp", "time", "ToolIdx", "PassNumber", "pass_type", "y", "plate_id", "DB_PASSES/NUMERO_OF","DB_PASSES/SELECTION_ALLIAGE" ,"PassID", "start_pos", "end_pos", "DB_PASSES/NUMERO_PASSE", "Broche/StatusTorqueData.ActualTorque", "timestamp_right"]
+    meta_cols = ["id", "sensor_file", "timestamp", "time", "ToolIdx", "PassNumber", "pass_type","y", "DB_PASSES/NUMERO_OF","DB_PASSES/SELECTION_ALLIAGE" ,"PassID", "start_pos", "end_pos", "DB_PASSES/NUMERO_PASSE", "timestamp_right"]
     feature_cols = [c for c in data.columns if c not in meta_cols]
     
     if len(data) < 5:
@@ -32,14 +29,17 @@ def compute_pca_3d(data):
 def plot(filename=""):
     os.makedirs("images", exist_ok=True)
     
+    
+    passes = ["Pre-Finishing","Finishing"]
     result = pl.scan_csv(filename)
+    result = result.filter(pl.col("pass_type").is_in(passes))
     tools = result.select(pl.col("ToolIdx")).unique().collect()["ToolIdx"].to_list()
     tools.sort()
     pass_types = result.select(pl.col("pass_type")).unique().collect()["pass_type"].to_list()
-    
     for p, t in itertools.product(pass_types, tools):
         data = result.filter((pl.col("ToolIdx") == t) & (pl.col("pass_type") == p))
         X_pca, var_exp, indices = compute_pca_3d(data)
+        timestamp = data.select("timestamp").collect()["timestamp"].to_list()
         
         if X_pca is not None:
             fig = plt.figure(figsize=(10, 8))
@@ -47,14 +47,13 @@ def plot(filename=""):
             
             sc = ax.scatter(
                 X_pca[:, 0], X_pca[:, 1], X_pca[:, 2], 
-                c=indices, 
+                c=timestamp, 
                 cmap="viridis", 
                 s=25, 
                 alpha=0.8,
                 edgecolors='w',
                 linewidths=0.2
             )
-            
             ax.plot(X_pca[:, 0], X_pca[:, 1], X_pca[:, 2], color='black', alpha=0.15, linewidth=1)
             
             var_totale = np.sum(var_exp) * 100
@@ -64,18 +63,17 @@ def plot(filename=""):
             ax.set_zlabel(f"PC3 ({var_exp[2]*100:.1f}%)")
             
             cbar = fig.colorbar(sc, ax=ax, pad=0.1)
-            cbar.set_label("Progression temporelle dans le cycle (Secondes)")
+            cbar.set_label("Progression temporelle (timestamp)")
             
             plt.tight_layout()
             
-            safe_p_name = p.replace(" ", "_").replace("/", "_")
-            fig_name = f"images/PCA_Outil_{t}_{safe_p_name}.png"
+            fig_name = f"images/PCA_Outil_{t}_{p}.png"
             #plt.savefig(fig_name, dpi=150)
             plt.show()
             plt.close(fig)
 
 def main():
-    plot("data/v1/tsfel_extracted.csv_total.csv")
+    plot("data/v4/tsfel_extracted_new.csv")
 
 if __name__ == "__main__":
     main()

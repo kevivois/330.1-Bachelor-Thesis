@@ -18,7 +18,7 @@ class LSTMModel(BaseModel):
         self.loss_history = LossHistory()
         self.eary_stopping = EarlyStopping(
             mode="min",
-            patience=30,
+            patience=10,
             monitor="val_loss"
         )
         self.base_images_path = "images/v2/models/current"
@@ -49,7 +49,7 @@ class LSTMModel(BaseModel):
         )
         self.meta_cols = [
             "sensor_file", "timestamp", "time", "ToolIdx", "plate_id", "DB_PASSES/NUMERO_OF", "PassID", "start_pos", "end_pos", "DB_PASSES/NUMERO_PASSE", 
-            "timestamp_right", "y"
+            "timestamp_right", "y","pass_type"
         ]
         self.scaler_x = Scaler()
         self.scaler_y = Scaler()
@@ -199,7 +199,7 @@ class LSTMModel(BaseModel):
         return run_path
 
     def preprocess_to_darts(self, df: pl.LazyFrame, target_column):
-        df_cleansed = df.collect().to_dummies(columns=["DB_PASSES/SELECTION_ALLIAGE", "pass_type"]).sort("timestamp")
+        df_cleansed = df.collect().to_dummies(columns=["DB_PASSES/SELECTION_ALLIAGE"]).sort("timestamp")
         feature_cols_raw = [c for c in df_cleansed.columns if c not in self.meta_cols]
         df_shifted = df_cleansed.with_columns([
             pl.col(c).shift(1).fill_null(strategy="backward") for c in feature_cols_raw
