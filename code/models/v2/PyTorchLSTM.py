@@ -9,6 +9,8 @@ from matplotlib import pyplot as plt
 import datetime
 from pathlib import Path
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import optuna
+from optuna.trial import TrialState
 
 
 
@@ -69,13 +71,15 @@ class PyTorchLSTM:
     def get_formated_datetime(self):
         return datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    def create_sequences(self, X_np, Y_np):
+    def create_sequences(self, X_np, Y_np,lookback=None):
         X_seq, Y_seq = [], []
-        lookback = self.config_params["input_chunk_length"]
+        if lookback == None:
+            lookback = self.config_params["input_chunk_length"]
         for i in range(len(X_np) - lookback):
             X_seq.append(X_np[i : i + lookback])
             Y_seq.append(Y_np[i + lookback])
         return np.array(X_seq), np.array(Y_seq)
+    
 
     def train(self, df_lazy: pl.LazyFrame):
         df_cleansed = df_lazy.collect().to_dummies(columns=["DB_PASSES/SELECTION_ALLIAGE"]).sort("timestamp")
@@ -174,7 +178,7 @@ class PyTorchLSTM:
         
         self.test(df_cleansed, X_raw, Y_raw)
         self.save()
-        return self.model_name
+        return self.save()
 
     def infer(self, X_matrix: np.ndarray):
         self.model.eval()
@@ -280,3 +284,64 @@ class PyTorchLSTM:
             self.model.eval()
         else:
             raise FileNotFoundError(f"No checkpoint found at: {model_file}")
+        
+        
+    def optimize_parameters(self,df_lazy: pl.LazyFrame, n_trials=20,epoch=30):
+        df_cleansed = df_lazy.collect().to_dummies(columns=["DB_PASSES/SELECTION_ALLIAGE"]).sort("timestamp")
+        df_cleansed = df_cleansed.drop(["pass_type"]).drop_nulls(subset=["y"]).fill_null(0.0)
+        
+        feature_cols = [c for c in df_cleansed.columns if c not in self.meta_cols]
+        X_raw = df_cleansed.select(feature_cols).to_numpy()
+        Y_raw = df_cleansed.select("y").to_numpy()
+        
+        train_end = int(len(Y_raw) * self.train_split)
+        val_end = int(len(Y_raw) * self.val_split)
+        self.epoch = epoch
+        
+        X_train_scaled = self.scaler_x.fit_transform(X_raw[:train_end])
+        Y_train_scaled = self.scaler_y.fit_transform(Y_raw[:train_end])
+        X_val_scaled = self.scaler_x.transform(X_raw[train_end:val_end])
+        Y_val_scaled = self.scaler_y.transform(Y_raw[train_end:val_end])
+        
+        def objective(trial):
+            lookback = trial.suggest_int("input_chunk_length", 1, 30, step=2)
+            hidden_dim = trial.suggest_int("hidden_dim", 8, 48, step=8)
+            n_layers = trial.suggest_int("n_rnn_layers", 1, 2)
+            dropout = trial.suggest_float("dropout", 0.0, 0.5, step=0.1)
+            weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
+            batch_size = trial.suggest_categorical("batch_size", [16,32,64])
+            
+            X_tr_seq, Y_tr_seq = self.create_sequences(X_train_scaled, Y_train_scaled, lookback=lookback)
+            X_va_seq, Y_va_seq = self.create_sequences(X_val_scaled, Y_val_scaled, lookback=lookback)
+            
+            tr_loader = DataLoader(TensorDataset(torch.FloatTensor(X_tr_seq), torch.FloatTensor(Y_tr_seq)), batch_size=batch_size, shuffle=False)
+            va_loader = DataLoader(TensorDataset(torch.FloatTensor(X_va_seq), torch.FloatTensor(Y_va_seq)), batch_size=batch_size, shuffle=False)
+            
+            trial_model = PyTorchLSTMNetwork(X_raw.shape[1], hidden_dim, n_layers, dropout)
+            criterion = nn.MSELoss()
+            optimizer = torch.optim.AdamW(trial_model.parameters(), lr=0.001, weight_decay=weight_decay)
+            
+            for epoch in range(self.epoch):
+                trial_model.train()
+                for bx, by in tr_loader:
+                    optimizer.zero_grad()
+                    loss = criterion(trial_model(bx), by)
+                    loss.backward()
+                    optimizer.step()
+            
+            trial_model.eval()
+            v_loss = 0.0
+            with torch.no_grad():
+                for bx, by in va_loader:
+                    v_loss += criterion(trial_model(bx), by).item()
+            return v_loss / len(va_loader)
+        
+        study = optuna.create_study(direction="minimize", pruner=optuna.pruners.MedianPruner())
+        study.optimize(objective, n_trials=n_trials)
+        
+        for param_name, param_value in study.best_params.items():
+            self.config_params[param_name] = param_value
+            
+        return study.best_params
+            
+        

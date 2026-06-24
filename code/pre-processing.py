@@ -40,6 +40,23 @@ def process(args:TaskParams):
     torque_df = pl.scan_parquet(args.basepath / "passes" / args.filename)
     
     
+    v = torque_df.select(
+        pl.col("Axe_X_master/ActualVelocity").mean()
+    ).collect().item()
+    
+    if not v:
+        print("speed mean is none")
+    
+    torque_df = torque_df.with_columns(
+        pl.when(v == None | (v == 0)).then(pl.lit("Unknown"))
+            .when((v > 0) & (v < 900)).then(pl.lit("Finishing"))
+            .when((v >= 1100) & (v < 1300)).then(pl.lit("Pre-Finishing"))
+            .when((v >= 1300) & (v < 1500)).then(pl.lit("Blanking"))
+            .when((v >= 2300) & (v < 2500)).then(pl.lit("Roughing"))
+            .otherwise(pl.lit("Unknown"))
+            .alias("pass_type")
+    )
+    
     try:
         sensor_schema = sensor_df.collect_schema()
         torque_schema = torque_df.collect_schema()
@@ -168,14 +185,25 @@ def create_csv_file(output_filename, target="Broche/StatusTorqueData.ActualTorqu
     if not dfs_extracted:
         print("Aucune donnée n'a été extraite.")
         return
-
-    result = (pl.DataFrame(pl.concat(dfs_extracted, how="diagonal"))).sort(["sensor_file","timestamp"]).drop("index").with_row_index("index")
+    
+    
     real_target = f"{target}_Mean"
     
-    result = result.with_columns(pl.col(real_target).shift(-1).alias("y")).drop_nulls(subset=["y"])
     
-    v = pl.col("Axe_X_master/ActualVelocity_Mean")
+    result = (
+    pl.DataFrame(pl.concat(dfs_extracted, how="diagonal"))
+    .sort(["sensor_file", "timestamp"])
+    .drop("index")
+    .with_row_index("index")
+    .with_columns(
+        pl.col(real_target)
+          .shift(-1)
+          .over("sensor_file") 
+          .alias("y")
+        ).drop_nulls(subset=["y"])    
+    )
     
+    '''
     result = result.with_columns(
         pl.when(v.is_null() | (v == 0)).then(pl.lit("Unknown"))
             .when((v > 0) & (v < 900)).then(pl.lit("Finishing"))
@@ -185,11 +213,12 @@ def create_csv_file(output_filename, target="Broche/StatusTorqueData.ActualTorqu
             .otherwise(pl.lit("Unknown"))
             .alias("pass_type")
     )
+    '''
     
     result.write_csv(f"{output_filename}_complete_file.csv")
     print(f"successfully written f{output_filename}_complete_file.csv")
 
-    string_categorical_columns = ["pass_type","sensor_file","DB_PASSES/NUMERO_OF","DB_PASSES/SELECTION_ALLIAGE","DB_PASSES/NUMERO_OF","DB_PASSES/COMPTEUR_RESET_PASSES","PassNumber","ToolIdx","PassID","y","timestamp","time","index"]
+    string_categorical_columns = ["pass_type","sensor_file","DB_PASSES/NUMERO_OF","DB_PASSES/SELECTION_ALLIAGE","DB_PASSES/COMPTEUR_RESET_PASSES","PassNumber","ToolIdx","PassID","y","timestamp","time","index"]
     X = result.drop(string_categorical_columns).to_pandas().astype(np.float64)
     X.index = result.get_column("index").to_numpy()
     Y = result.select("y")["y"].to_numpy()
@@ -244,7 +273,7 @@ def plot_csv(filename):
     plt.show()
     
 def main():
-    create_csv_file("tsfel_extracted_new")
+    create_csv_file("tsfel_extracted_v5")
 
 if __name__ == "__main__":
     main()

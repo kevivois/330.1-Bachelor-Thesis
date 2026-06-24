@@ -11,10 +11,12 @@ from pathlib import Path
 from pytorch_lightning.callbacks import EarlyStopping
 from darts.metrics import mse, rmse, mae, r2_score
 import datetime
+import optuna
+from optuna.trial import TrialState
 
 class LSTMModel(BaseModel):
-    def __init__(self, model="LSTM", input_chunk_length=20, output_chunk_length=1, hidden_dim=4, n_rnn_layers=2, batch_size=16, n_epochs=100, dropout=0.3):
-        super().__init__("RNN - LSTM")
+    def __init__(self,data: pl.LazyFrame, model="LSTM", input_chunk_length=40, output_chunk_length=1, hidden_dim=64, n_rnn_layers=1, batch_size=32, n_epochs=100, dropout=0.5,filepath="",meta_cols=[], target_column: str = "y",learning_rate=1e-4):
+        super().__init__(data,target_column,"RNN - LSTM")
         self.loss_history = LossHistory()
         self.eary_stopping = EarlyStopping(
             mode="min",
@@ -22,6 +24,10 @@ class LSTMModel(BaseModel):
             monitor="val_loss"
         )
         self.base_images_path = "images/v2/models/current"
+        self.filepath = filepath
+        self.features_cols = []
+        self.meta_cols = meta_cols
+        self.target_col = ""
         
         self.config_params = {
             "model_type": model,
@@ -45,12 +51,10 @@ class LSTMModel(BaseModel):
             n_epochs=n_epochs,
             pl_trainer_kwargs={
                 "callbacks":[self.loss_history, self.eary_stopping]
-            }
+            },
+            optimizer_kwargs={"lr":learning_rate}
         )
-        self.meta_cols = [
-            "sensor_file", "timestamp", "time", "ToolIdx", "plate_id", "DB_PASSES/NUMERO_OF", "PassID", "start_pos", "end_pos", "DB_PASSES/NUMERO_PASSE", 
-            "timestamp_right", "y","pass_type"
-        ]
+        self.meta_cols = self.meta_cols
         self.scaler_x = Scaler()
         self.scaler_y = Scaler()
         self.train_split, self.val_split = 0.60, 0.80
@@ -62,9 +66,119 @@ class LSTMModel(BaseModel):
         self.fig_pred = None
         self.Y_test_raw = None
         self.pred_df = None
+        self.filepath = None
 
     def get_formated_datetime(self):
         return datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
+    def optimize_parameters(self, df: pl.LazyFrame, target_column: str, n_trials: int = 20, n_epochs_optuna: int = 30):
+        X_full, Y_full = self.preprocess_to_darts(df,target_column)
+        
+        train_end = int(len(Y_full) * self.train_split)
+        val_end = int(len(Y_full) * self.val_split)
+
+        Y_train_raw = Y_full[:train_end]
+        Y_val_raw = Y_full[train_end:val_end]
+        X_train_raw = X_full[:train_end]
+        X_val_raw = X_full[train_end:val_end]
+        
+        def objective(trial):
+            input_chunk_length = trial.suggest_int("input_chunk_length", 5, 60, step=5)
+            hidden_dim = trial.suggest_int("hidden_dim", 8, 64, step=8)
+            n_rnn_layers = trial.suggest_int("n_rnn_layers", 1, 3)
+            dropout = trial.suggest_float("dropout", 0.1, 0.5, step=0.1)
+            batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
+            learning_rate = trial.suggest_float("learning_rate", 1e-6, 1e-2, log=True)
+
+            scaler_x = Scaler()
+            scaler_y = Scaler()
+
+            X_train = scaler_x.fit_transform(X_train_raw)
+            Y_train = scaler_y.fit_transform(Y_train_raw)
+            X_val = scaler_x.transform(X_val_raw)
+            Y_val = scaler_y.transform(Y_val_raw)
+
+            trial_model = BlockRNNModel(
+                model=self.config_params["model_type"],
+                input_chunk_length=input_chunk_length,
+                output_chunk_length=1,
+                hidden_dim=hidden_dim,
+                n_rnn_layers=n_rnn_layers,
+                batch_size=batch_size,
+                dropout=dropout,
+                n_epochs=n_epochs_optuna,
+                pl_trainer_kwargs={"enable_progress_bar": True, "enable_model_summary": False},
+                optimizer_kwargs={"lr":learning_rate}
+            )
+            try:
+                trial_model.fit(
+                    series=Y_train,
+                    past_covariates=X_train,
+                    val_series=Y_val,
+                    val_past_covariates=X_val
+                )
+
+                pred_scaled = trial_model.historical_forecasts(
+                    series=Y_val,
+                    past_covariates=X_val,
+                    start=input_chunk_length,
+                    forecast_horizon=1,
+                    retrain=False,
+                    last_points_only=True
+                )
+
+                pred = scaler_y.inverse_transform(pred_scaled)
+                val_ref = Y_val_raw[input_chunk_length:]
+                score = rmse(val_ref, pred)
+
+            except Exception as e:
+                print(f"Trial failed: {e}")
+                return float("inf")
+
+            return score
+        
+        
+        study = optuna.create_study(
+        direction="minimize",
+        pruner=optuna.pruners.MedianPruner(n_warmup_steps=5)
+        )
+        study.optimize(objective, n_trials=n_trials)
+        
+        completed = [t for t in study.trials if t.state == TrialState.COMPLETE]
+        if not completed:
+            print("Aucun trial n'a abouti.")
+            return {}
+        
+        best = study.best_params
+        print(f"Meilleurs hyperparamètres trouvés : {best}")
+
+        for k, v in best.items():
+            self.config_params[k] = v
+            
+            
+        self.loss_history = LossHistory() 
+        self.eary_stopping = EarlyStopping(mode="min", patience=10, monitor="val_loss")
+
+        self.model = BlockRNNModel(
+        model=self.config_params["model_type"],
+        input_chunk_length=self.config_params["input_chunk_length"],
+        output_chunk_length=1,
+        hidden_dim=self.config_params["hidden_dim"],
+        n_rnn_layers=self.config_params["n_rnn_layers"],
+        batch_size=self.config_params["batch_size"],
+        dropout=self.config_params["dropout"],
+        n_epochs=self.config_params["n_epochs"],
+        pl_trainer_kwargs={
+            "callbacks": [self.loss_history, self.eary_stopping]
+            }
+        )
+        
+        return best
+
+
+
+
+        
 
     def train(self, X: TimeSeries, Y: TimeSeries = None):
         train_end = int(len(Y) * self.train_split)
@@ -186,6 +300,12 @@ class LSTMModel(BaseModel):
                 "val_percentage": (self.val_split - self.train_split) * 100,
                 "test_percentage": (1 - self.val_split) * 100
             },
+            "columns":{
+                "features":self.features_cols,
+                "meta":self.meta_cols,
+                "target":self.target_col
+            },
+            "filepath":self.filepath,
             "evaluation_metrics": {
                 "MSE": float(self.res_mse),
                 "RMSE": float(self.res_rmse),
@@ -199,13 +319,11 @@ class LSTMModel(BaseModel):
         return run_path
 
     def preprocess_to_darts(self, df: pl.LazyFrame, target_column):
-        df_cleansed = df.collect().to_dummies(columns=["DB_PASSES/SELECTION_ALLIAGE"]).sort("timestamp")
-        feature_cols_raw = [c for c in df_cleansed.columns if c not in self.meta_cols]
-        df_shifted = df_cleansed.with_columns([
-            pl.col(c).shift(1).fill_null(strategy="backward") for c in feature_cols_raw
-        ])
-        df_pd = df_shifted.to_pandas()
-        feature_cols = [c for c in df_cleansed.columns if c not in self.meta_cols]
+        df_pd = df.collect().to_pandas()
+        feature_cols = [c for c in df.columns if c not in self.meta_cols]
+        self.features_cols = feature_cols
+        self.meta_cols = self.meta_cols
+        self.target_col = target_column
         X = TimeSeries.from_dataframe(df_pd, value_cols=feature_cols)
         Y = TimeSeries.from_dataframe(df_pd, value_cols=target_column)
         return X, Y
