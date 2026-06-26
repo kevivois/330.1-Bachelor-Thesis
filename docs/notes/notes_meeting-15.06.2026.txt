@@ -1,0 +1,64 @@
+15.06.2026 - 11h
+
+Kevin Voisin
+Francesco Carrino
+
+notes pre-reunions :
+
+reçu les données du couple à 10hz => phase de preprocessing, refaire les graphs & plots => test sur un modele TFT
+
+Interrogation rapport : Ecrire direct que j'ai eu toute les données et ne pas montrer les graphs des "anciennes données ? (Correlation de Spearman,PCA) ou mettre une "narative" et écrire"
+
+Semaine passée :
+
+Fais des tests sur un LSTM & GRU simple (avec 1 ligne par passe)
+
+Montrer les résultats
+
+Notes reunions :
+
+Rapport exploration iterative : (donnes,pre-processing, model, resultats,)
+
+Colonne type de pass : pertinence de mettre en entrée ? pas forcement car elle dépend d'autre colonnes deja en features
+
+Faire attention pour le type blanking ? (filtrer les données)
+
+Utiliser pre-finition et finition a la place , essayer avec roughing et sans roughing
+
+Prediction : prendre les 5-10 passées ? réflechir
+
+Benchmarking important :
+
+Pour chaquer modèle
+Tester 1 modele ,  trouver les meilleures hyperparamètres d'entrainement => essayer en validation
+
+Recherche d'hyperparamètres :
+
+Utiliser Optuna avec Darts
+
+Colonne qui représente le futur ? :
+
+On connait le prochain :
+
+type de passe , alliage, vitesse de borche,profondeur de passe
+
+On connait casi tout sauf le couple
+
+Justifier la selection de features :
+
+Prendre tout pour 1 minute de données : prend xmn de temps a compute
+
+Trouver une manière "structurée" de comparé les algorythmes et modèles
+
+Dans le système de comparaison :
+
+Désactiver et activer les colonnes de sons : est-ce mieux ou pas ?
+
+IMPORTANT (pour moi) : Trouver une manière empirique et quantifiable de comparer les modèles et également comparer avec ou sans les données de son , aussi pour le rapport !!!
+
+
+
+
+
+
+
