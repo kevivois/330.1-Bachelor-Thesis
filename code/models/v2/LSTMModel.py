@@ -15,7 +15,7 @@ import optuna
 from optuna.trial import TrialState
 
 class LSTMModel(BaseModel):
-    def __init__(self,data: pl.LazyFrame, model="LSTM", input_chunk_length=40, output_chunk_length=1, hidden_dim=64, n_rnn_layers=1, batch_size=32, n_epochs=100, dropout=0.5,filepath="",meta_cols=[], target_column: str = "y",learning_rate=1e-4):
+    def __init__(self,data: pl.LazyFrame,train_tools,val_tools,test_tools,model="LSTM", input_chunk_length=40, output_chunk_length=1, hidden_dim=64, n_rnn_layers=1, batch_size=32, n_epochs=100, dropout=0.5,filepath="",meta_cols=[], target_column: str = "y",learning_rate=1e-4,base_image_path=""):
         super().__init__(data,target_column,"RNN - LSTM")
         self.loss_history = LossHistory()
         self.eary_stopping = EarlyStopping(
@@ -23,11 +23,15 @@ class LSTMModel(BaseModel):
             patience=10,
             monitor="val_loss"
         )
-        self.base_images_path = "images/v2/models/current"
+        self.base_images_path = base_image_path
         self.filepath = filepath
         self.features_cols = []
         self.meta_cols = meta_cols
-        self.target_col = ""
+        self.target_col = target_column
+        self.data:pl.LazyFrame = data
+        self.train_tools = train_tools
+        self.test_tools = test_tools
+        self.val_tools = val_tools
         
         self.config_params = {
             "model_type": model,
@@ -57,7 +61,7 @@ class LSTMModel(BaseModel):
         self.meta_cols = self.meta_cols
         self.scaler_x = Scaler()
         self.scaler_y = Scaler()
-        self.train_split, self.val_split = 0.60, 0.80
+        # self.train_split, self.val_split = 0.60, 0.80
         self.res_mse = 0.0
         self.res_rmse = 0.0
         self.res_mae = 0.0
@@ -68,19 +72,14 @@ class LSTMModel(BaseModel):
         self.pred_df = None
         self.filepath = None
 
-    def get_formated_datetime(self):
+    @staticmethod
+    def get_formated_datetime():
         return datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     
-    def optimize_parameters(self, df: pl.LazyFrame, target_column: str, n_trials: int = 20, n_epochs_optuna: int = 30):
-        X_full, Y_full = self.preprocess_to_darts(df,target_column)
-        
-        train_end = int(len(Y_full) * self.train_split)
-        val_end = int(len(Y_full) * self.val_split)
+    def optimize_parameters(self, n_trials: int = 20, n_epochs_optuna: int = 30):
+        X_train_raw, Y_train_raw = self.preprocess_to_darts(self.train_tools)
+        X_val_raw,   Y_val_raw   = self.preprocess_to_darts(self.val_tools)
 
-        Y_train_raw = Y_full[:train_end]
-        Y_val_raw = Y_full[train_end:val_end]
-        X_train_raw = X_full[:train_end]
-        X_val_raw = X_full[train_end:val_end]
         
         def objective(trial):
             input_chunk_length = trial.suggest_int("input_chunk_length", 5, 60, step=5)
@@ -178,6 +177,33 @@ class LSTMModel(BaseModel):
 
 
 
+    def start_training(self,):
+    
+        X_train_raw, Y_train_raw = self.preprocess_to_darts(self.train_tools)
+        X_val_raw,   Y_val_raw   = self.preprocess_to_darts(self.val_tools)
+        
+        X_train = self.scaler_x.fit_transform(X_train_raw)
+        Y_train = self.scaler_y.fit_transform(Y_train_raw)
+        X_val   = self.scaler_x.transform(X_val_raw)
+        Y_val   = self.scaler_y.transform(Y_val_raw)
+
+        self.model.fit(
+            series=Y_train,
+            past_covariates=X_train,
+            val_series=Y_val,
+            val_past_covariates=X_val
+        )
+
+        self.fig_loss = plt.figure(figsize=(10, 5))
+        plt.plot(self.loss_history.train_losses, label="Train Loss")
+        plt.plot(self.loss_history.val_losses, label="Validation Loss")
+        plt.legend()
+
+        self.test()
+        return self.save()
+
+
+
         
 
     def train(self, X: TimeSeries, Y: TimeSeries = None):
@@ -219,8 +245,8 @@ class LSTMModel(BaseModel):
         pred_df = pl.from_pandas(pred_ts.to_dataframe().reset_index())
         return pred_df
 
-    def test(self, X: TimeSeries, Y: TimeSeries):
-        test_start = int(len(Y) * self.val_split)
+    def test(self):
+        X,  Y  = self.preprocess_to_darts(self.test_tools)
         
         X_scaled = self.scaler_x.transform(X)
         Y_scaled = self.scaler_y.transform(Y)
@@ -228,7 +254,6 @@ class LSTMModel(BaseModel):
         pred_ts_scaled = self.model.historical_forecasts(
             series=Y_scaled,
             past_covariates=X_scaled,
-            start=test_start,
             forecast_horizon=1,
             retrain=False,
             last_points_only=True
@@ -236,7 +261,7 @@ class LSTMModel(BaseModel):
         
         pred_ts = self.scaler_y.inverse_transform(pred_ts_scaled)
         self.pred_df = pl.from_pandas(pred_ts.to_dataframe().reset_index())
-        self.Y_test_raw = Y[test_start:]
+        self.Y_test_raw = Y
         
         self.res_mse = mse(self.Y_test_raw, pred_ts)
         self.res_rmse = rmse(self.Y_test_raw, pred_ts)
@@ -275,10 +300,10 @@ class LSTMModel(BaseModel):
         return self.pred_df
 
     
-    def save(self, path="./"):
+    def save(self):
         run_path = self._save()
-        return super().save(run_path)
-    def _save(self) -> None:
+        return run_path
+    def _save(self) -> Path:
         run_name = f"run_{self.get_formated_datetime()}_{self.config_params['model_type']}"
         run_path = Path(self.base_images_path) / run_name
         run_path.mkdir(parents=True,exist_ok=True)
@@ -296,9 +321,9 @@ class LSTMModel(BaseModel):
             "experiment_timestamp": datetime.datetime.now().isoformat(),
             "model_hyperparameters": self.config_params,
             "dataset_splits": {
-                "train_percentage": self.train_split * 100,
-                "val_percentage": (self.val_split - self.train_split) * 100,
-                "test_percentage": (1 - self.val_split) * 100
+                "train_tools": self.train_tools,
+                "val_percentage":self.val_tools,
+                "test_percentage":self.test_tools
             },
             "columns":{
                 "features":self.features_cols,
@@ -318,14 +343,17 @@ class LSTMModel(BaseModel):
             json.dump(summary_report, f, indent=4, ensure_ascii=False)
         return run_path
 
-    def preprocess_to_darts(self, df: pl.LazyFrame, target_column):
-        df_pd = df.collect().to_pandas()
-        feature_cols = [c for c in df.columns if c not in self.meta_cols]
+    def preprocess_to_darts(self, tool_ids: list = None):
+        if tool_ids is not None:
+            subset = self.data.filter(pl.col("ToolIdx").is_in(tool_ids))
+        else:
+            subset = self.data
+        df_pd = subset.collect().to_pandas()
+        feature_cols = [c for c in df_pd.columns if c not in self.meta_cols]
         self.features_cols = feature_cols
-        self.meta_cols = self.meta_cols
-        self.target_col = target_column
+        self.target_col = self.target_col
         X = TimeSeries.from_dataframe(df_pd, value_cols=feature_cols)
-        Y = TimeSeries.from_dataframe(df_pd, value_cols=target_column)
+        Y = TimeSeries.from_dataframe(df_pd, value_cols=self.target_col)
         return X, Y
 
     def load(self, path: Path) -> None:

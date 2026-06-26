@@ -6,13 +6,17 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "altair>=6.1.0",
+    "darts>=0.44.1",
     "fastparquet>=2026.5.0",
     "ipython>=9.13.0",
+    "lightning>=2.6.5",
     "matplotlib>=3.10.9",
     "numpy>=2.4.6",
+    "optuna>=4.9.0",
     "pandas>=3.0.3",
     "polars>=1.41.0",
     "pyarrow>=24.0.0",
+    "scikit-learn>=1.8.0",
     "scipy>=1.17.1",
     "tqdm>=4.67.3",
     "tsfel>=0.2.0",
