@@ -12,6 +12,10 @@ from darts import TimeSeries
 import datetime
 from pathlib import Path
 
+
+'''
+Base model class of my ML models
+'''
 class BaseModel(ABC):
     def __init__(self,data:pl.LazyFrame,target_column:str, model_name: str):
         self.model_name = model_name
@@ -24,20 +28,13 @@ class BaseModel(ABC):
         pass
 
     @abstractmethod
-    def train(self, X: TimeSeries, Y: Any = None):
-        pass
-
-    @abstractmethod
     def infer(self, X: TimeSeries, n_steps: int = 1) -> pl.DataFrame:
         pass
     
-    def start_training(self,saving=True) -> str:
-        X, Y = self.preprocess_to_darts(self.data, target_column=self.target_column)
-        model_path = self.train(X, Y)
-        if saving:
-            self.save()
-        return model_path
-    
+    @abstractmethod
+    def train(self,saving=True) -> str:
+        pass
+        
     @abstractmethod
     def save(self) -> Path:
         pass

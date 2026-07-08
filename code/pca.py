@@ -4,9 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-import itertools
 
-def compute_pca_3d(data):
+'''
+Function used to generate/show & save in a row a PCA by ToolIdx and by type of passes
+'''
+def compute_pca_3d(data:pl.LazyFrame):
     data = data.collect()
     if len(data) == 0:
         return None, None, None
@@ -36,44 +38,45 @@ def plot(filename=""):
     tools = result.select(pl.col("ToolIdx")).unique().collect()["ToolIdx"].to_list()
     tools.sort()
     pass_types = result.select(pl.col("pass_type")).unique().collect()["pass_type"].to_list()
-    for p, t in itertools.product(pass_types, tools):
-        data = result.filter((pl.col("ToolIdx") == t) & (pl.col("pass_type") == p))
-        X_pca, var_exp, indices = compute_pca_3d(data)
-        timestamp = data.select("timestamp").collect()["timestamp"].to_list()
-        
-        if X_pca is not None:
-            fig = plt.figure(figsize=(10, 8))
-            ax = fig.add_subplot(111, projection='3d')
+    for p in pass_types:
+        for t in tools:
+            data = result.filter((pl.col("ToolIdx") == t) & (pl.col("pass_type") == p))
+            X_pca, var_exp, indices = compute_pca_3d(data)
+            timestamp = data.select("timestamp").collect()["timestamp"].to_list()
             
-            sc = ax.scatter(
-                X_pca[:, 0], X_pca[:, 1], X_pca[:, 2], 
-                c=timestamp, 
-                cmap="viridis", 
-                s=25, 
-                alpha=0.8,
-                edgecolors='w',
-                linewidths=0.2
-            )
-            ax.plot(X_pca[:, 0], X_pca[:, 1], X_pca[:, 2], color='black', alpha=0.15, linewidth=1)
-            
-            var_totale = np.sum(var_exp) * 100
-            ax.set_title(f"Espace Latent PCA 3D - Outil {t}\nRégime : {p} (Variance Totale Expliquée : {var_totale:.1f}%)", fontsize=12, fontweight='bold')
-            ax.set_xlabel(f"PC1 ({var_exp[0]*100:.1f}%)")
-            ax.set_ylabel(f"PC2 ({var_exp[1]*100:.1f}%)")
-            ax.set_zlabel(f"PC3 ({var_exp[2]*100:.1f}%)")
-            
-            cbar = fig.colorbar(sc, ax=ax, pad=0.1)
-            cbar.set_label("Progression temporelle (timestamp)")
-            
-            plt.tight_layout()
-            
-            fig_name = f"images/PCA_Outil_{t}_{p}.png"
-            #plt.savefig(fig_name, dpi=150)
-            plt.show()
-            plt.close(fig)
+            if X_pca is not None:
+                fig = plt.figure(figsize=(10, 8))
+                ax = fig.add_subplot(111, projection='3d')
+                
+                sc = ax.scatter(
+                    X_pca[:, 0], X_pca[:, 1], X_pca[:, 2], 
+                    c=timestamp, 
+                    cmap="viridis", 
+                    s=25, 
+                    alpha=0.8,
+                    edgecolors='w',
+                    linewidths=0.2
+                )
+                ax.plot(X_pca[:, 0], X_pca[:, 1], X_pca[:, 2], color='black', alpha=0.15, linewidth=1)
+                
+                var_totale = np.sum(var_exp) * 100
+                ax.set_title(f"PCA 3D - Outil {t}\pass type : {p} (Variance expliquée : {var_totale:.1f}%)", fontsize=12, fontweight='bold')
+                ax.set_xlabel(f"PC1 ({float(var_exp[0]*100)}%)")
+                ax.set_ylabel(f"PC2 ({float(var_exp[1]*100)}%)")
+                ax.set_zlabel(f"PC3 ({float(var_exp[2]*100)}%)")
+                
+                cbar = fig.colorbar(sc, ax=ax, pad=0.1)
+                cbar.set_label("Progression temporelle (timestamp)")
+                
+                plt.tight_layout()
+                
+                fig_name = f"images/PCA_Outil_{t}_{p}.png"
+                #plt.savefig(fig_name, dpi=150)
+                plt.show()
+                plt.close(fig)
 
 def main():
-    plot("data/v4/tsfel_extracted_new.csv")
+    plot("../data/v4/tsfel_extracted_new.csv")
 
 if __name__ == "__main__":
     main()

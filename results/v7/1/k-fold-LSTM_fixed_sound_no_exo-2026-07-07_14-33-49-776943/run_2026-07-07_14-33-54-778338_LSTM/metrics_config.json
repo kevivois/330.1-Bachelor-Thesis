@@ -1,0 +1,91 @@
+{
+    "experiment_timestamp": "2026-07-07T14:33:55.017966",
+    "model_hyperparameters": {
+        "model_type": "LSTM",
+        "input_chunk_length": 20,
+        "output_chunk_length": 1,
+        "hidden_dim": 64,
+        "n_rnn_layers": 1,
+        "batch_size": 32,
+        "dropout": 0.3,
+        "n_epochs": 50
+    },
+    "dataset_splits": {
+        "train_tools": [
+            0,
+            1,
+            4,
+            5,
+            9,
+            10,
+            11
+        ],
+        "val_percentage": [
+            3,
+            2
+        ],
+        "test_percentage": [
+            6,
+            7,
+            8
+        ]
+    },
+    "columns": {
+        "features": [
+            "Sound_Spectral centroid",
+            "AccY_Zero crossing rate",
+            "AccX_Zero crossing rate",
+            "AccZ_Zero crossing rate",
+            "AccZ_Spectral roll-off",
+            "Sound_Spectral roll-off",
+            "AccX_Spectral roll-off",
+            "AccY_Root mean square",
+            "AccY_Variance",
+            "AccY_Standard deviation",
+            "AccY_Spectral roll-off",
+            "AccZ_Spectral centroid",
+            "AccY_Min",
+            "AccX_Max",
+            "AccY_Max",
+            "AccX_Root mean square",
+            "AccX_Standard deviation",
+            "AccX_Variance",
+            "AccX_Min",
+            "Sound_Median",
+            "AccY_Spectral centroid",
+            "AccX_Spectral centroid",
+            "Sound_Root mean square",
+            "Sound_Variance",
+            "Sound_Standard deviation",
+            "AccX_Median",
+            "AccZ_Min",
+            "Sound_Zero crossing rate",
+            "AccZ_Max"
+        ],
+        "meta": [
+            "sensor_file",
+            "timestamp",
+            "time",
+            "ToolIdx",
+            "plate_id",
+            "DB_PASSES/NUMERO_OF",
+            "PassID",
+            "start_pos",
+            "end_pos",
+            "DB_PASSES/NUMERO_PASSE",
+            "timestamp_right",
+            "y",
+            "pass_type",
+            "index",
+            "DB_PASSES/COMPTEUR_RESET_PASSES"
+        ],
+        "target": "y"
+    },
+    "filepath": "./tsfel_extracted_v8_y_mean_torque.csv",
+    "evaluation_metrics": {
+        "MSE": 31138.79505407393,
+        "RMSE": 176.4618798893232,
+        "MAE": 135.31453523755673,
+        "R2_Score": 0.7447772889851592
+    }
+}
