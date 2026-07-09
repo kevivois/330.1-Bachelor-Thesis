@@ -1,0 +1,43 @@
+Meeting TB 06.07.2026 - 11h00
+
+Kevin Voisin
+
+Fransisco Carrino
+
+
+
+notes pre-meeting:
+
+
+
+
+Montrer résultats
+
+
+Essayer 1 type de passe avec 1 ligne par fichier
+
+fold qui diverge (outils 9-11 atypiques)
+
+
+LSTM  meilleur que TFT pour modèle à type de passe différent
+
+
+notes :
+
+
+prédire la moyenne à 1 ligne par fichier par type de pase
+prédire la mediane à 1 ligne par fichier par type de passe
+
+prédire la moyenne à 10 ligne par fichier par type de pase
+prédire la mediane à 10 ligne par fichier par type de passe
+
+
+
+
+readme
+
+
+nettoyer le code et la structure , rentre intuitif
+
+
+
