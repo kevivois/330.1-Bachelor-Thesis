@@ -111,7 +111,7 @@ def plot_tsne(filename=""):
                 plt.close(fig)
 
 def main():
-    plot_tsne("../data/v4/tsfel_extracted_new.csv")
+    plot_tsne( "../data/v5/tsfel_extracted_v5.csv")
 
 if __name__ == "__main__":
     main()

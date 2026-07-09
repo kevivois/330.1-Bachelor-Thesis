@@ -47,4 +47,4 @@ def plot_passes_trend(filename: str, y_col: str = "Broche/StatusTorqueData.Actua
 
 
 if __name__ == "__main__":
-    plot_passes_trend("../data/v4/tsfel_extracted_new.csv")
+    plot_passes_trend( "../data/v5/tsfel_extracted_v5.csv")

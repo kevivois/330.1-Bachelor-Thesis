@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def main():
-    filename = "../data/v4/tsfel_extracted_new.csv"
+    filename = "../data/v5/tsfel_extracted_v5.csv"
     passes = ["Pre-Finishing", "Finishing"]
     data_pl = pl.scan_csv(filename)
     toolIdx = data_pl.select("ToolIdx").unique().collect().sort("ToolIdx")["ToolIdx"].to_list()
