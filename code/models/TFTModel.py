@@ -1,5 +1,6 @@
-# Definition of the Temporal Fusion Transformer model used for sequence prediction.
-
+'''
+Definition of the Temporal Fusion Transformer model used for sequence prediction.
+'''
 
 import json
 import polars as pl

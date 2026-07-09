@@ -1,4 +1,6 @@
-# Base model utilities and shared logic for the training models.
+'''
+Base model utilities and shared logic for the training models.
+'''
 
 
 import polars as pl

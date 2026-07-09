@@ -163,8 +163,9 @@ def process(args:TaskParams):
     return final_df.with_columns(pl.lit(args.filename).alias("sensor_file"))
     
     
-def create_csv_file(output_filename, target="Broche/StatusTorqueData.ActualTorque_Mean"):
-    basepath = pathlib.Path("/home/kevin.voisin/datasets/kevivois/data_new/")
+def create_csv_file(output_filename,basepath, target="Broche/StatusTorqueData.ActualTorque_Mean"):
+    
+    basepath = pathlib.Path(basepath)
     sensor_cols = ["AccX", "AccY", "AccZ", "Sound"] # Column to calculates feature on for the sensor data
     torque_cols = ["Broche/ActualSpeed", "Axe_X_master/ActualVelocity", "Broche/StatusTorqueData.ActualTorque", "Axe_X_master/ActualPosition"] # Column to calculates feature on for the torque data
     rows = [f.name for f in (basepath / "passes_sensor").iterdir() if f.is_file() and f.suffix == ".parquet"]
@@ -239,7 +240,10 @@ def create_csv_file(output_filename, target="Broche/StatusTorqueData.ActualTorqu
 
     
 def main():
-    create_csv_file("tsfel_extracted_v5",target="Broche/StatusTorqueData.ActualTorque_Median")
+    basepath = "/home/kevin.voisin/datasets/kevivois/data_new/"
+    target =  "Broche/StatusTorqueData.ActualTorque_Median"
+    output_filename = "tsfel_extracted_v5"
+    create_csv_file(output_filename,basepath,target)
 
 if __name__ == "__main__":
     main()

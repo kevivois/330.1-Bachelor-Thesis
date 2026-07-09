@@ -1,5 +1,6 @@
-# Definition of the LSTM model used for sequence prediction.
-
+'''
+Definition of the LSTM model used for sequence prediction.
+'''
 
 
 import json
