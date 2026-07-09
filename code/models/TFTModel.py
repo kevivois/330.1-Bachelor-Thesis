@@ -6,9 +6,9 @@ import json
 import polars as pl
 from darts import TimeSeries
 from darts.models import TFTModel as DartsTFTModel
-from BaseModel import BaseModel 
+from .BaseModel import BaseModel 
 from matplotlib import pyplot as plt
-from LossHistory import LossHistory
+from .LossHistory import LossHistory
 from darts.dataprocessing.transformers import Scaler
 from pathlib import Path
 from pytorch_lightning.callbacks import EarlyStopping

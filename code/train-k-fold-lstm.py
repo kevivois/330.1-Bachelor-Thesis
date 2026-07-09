@@ -156,10 +156,9 @@ if __name__ == "__main__":
     
 
     datasets = [
-        ("./tsfel_extracted_v5.csv", 10,"./runs/v6/1"),     # Using data that has beed reduced to 10 rows per pass file
-        ("./tsfel_extracted_v8_y_mean_torque.csv", 1,"./runs/v6/1"), # Using data that has been reduced to 1 row per pass file
+        ("../data/v5/tsfel_extracted_v5.csv", 10,"./runs/v6"),  # Using data that has beed reduced to 10 rows per pass file
+        #("./tsfel_extracted_v8_y_mean_torque.csv", 1,"./runs/v6/1"),  # Using data that has been reduced to 1 row per pass file
     ]
-    
     configs = [
     # model_type, with_exo, with_sound, only_sound, with_optuna, passes
     ("LSTM", True,  True,  False, False, ["Finishing"]),
