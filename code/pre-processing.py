@@ -27,7 +27,7 @@ os.environ["MKL_NUM_THREADS"] = "1" # Intel MKL Limit
 os.environ["OPENBLAS_NUM_THREADS"] = "1" # OpenBLAS limit
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # Accelerate/vecLib Limit
 os.environ["NUMEXPR_NUM_THREADS"] = "1" # Numexpr Limit
-
+# ----------------------------------------
 
 N_WINDOW_PER_FILE = 1
 

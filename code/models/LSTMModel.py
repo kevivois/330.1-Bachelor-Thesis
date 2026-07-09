@@ -359,6 +359,8 @@ class LSTMModel(BaseModel):
         self.res_r2 = r2_score(self.Y_test_raw, pred_ts)
         
         self.fig_pred, ax = plt.subplots(figsize=(12, 7))
+        
+        # This part has been developped with the assistance of Gemini
         ax.plot(self.Y_test_raw.to_series().values, label="Vrai couple", color="black", linewidth=1.5)
         ax.plot(self.pred_df["y"].to_numpy(), label="Couple prédit (t+1)", color="orange", linestyle="--", linewidth=1.5)
         
@@ -370,13 +372,13 @@ class LSTMModel(BaseModel):
         
         stats_text = (
             f"metrics :\n"
-            f"-------------------\n"
+            f"------------------- \n"
             f"MSE  : {self.res_mse:.3f} Nm\n"
             f"RMSE : {self.res_rmse:.3f} Nm\n"
             f"MAE  : {self.res_mae:.3f} Nm\n"
-            f"R²   : {self.res_r2:.3f}\n\n"
-            f"model confguration :\n"
-            f"----------------------\n"
+            f"R²   : {self.res_r2:.3f}\n"
+            f"model confguration : \n"
+            f"---------------------- \n"
             f"Hidden Dim : {self.model.model_params['hidden_dim']}\n"
             f"Layers     : {self.model.model_params['n_rnn_layers']}\n"
             f"Lookback   : {self.model.model_params['input_chunk_length']} passes\n"
@@ -387,6 +389,8 @@ class LSTMModel(BaseModel):
         ax.text(0.97, 0.96, stats_text, transform=ax.transAxes, fontsize=10,
                 verticalalignment='top', horizontalalignment='right', bbox=props, fontfamily='monospace')
         plt.tight_layout()
+        #---------------------------------
+        
         return self.pred_df
 
         
