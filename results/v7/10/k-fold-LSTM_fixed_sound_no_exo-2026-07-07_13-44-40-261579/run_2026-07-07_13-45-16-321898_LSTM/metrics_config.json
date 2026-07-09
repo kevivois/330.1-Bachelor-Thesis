@@ -1,0 +1,95 @@
+{
+    "experiment_timestamp": "2026-07-07T13:45:16.528534",
+    "model_hyperparameters": {
+        "model_type": "LSTM",
+        "input_chunk_length": 20,
+        "output_chunk_length": 1,
+        "hidden_dim": 64,
+        "n_rnn_layers": 1,
+        "batch_size": 32,
+        "dropout": 0.3,
+        "n_epochs": 50
+    },
+    "dataset_splits": {
+        "train_tools": [
+            0,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "val_percentage": [
+            1,
+            8
+        ],
+        "test_percentage": [
+            9,
+            10,
+            11
+        ]
+    },
+    "columns": {
+        "features": [
+            "Sound_Spectral roll-off",
+            "AccZ_Zero crossing rate",
+            "AccZ_Spectral roll-off",
+            "AccY_Zero crossing rate",
+            "AccY_Variance",
+            "AccY_Standard deviation",
+            "AccY_Root mean square",
+            "AccY_Max",
+            "AccX_Zero crossing rate",
+            "AccX_Spectral roll-off",
+            "AccY_Spectral roll-off",
+            "Sound_Spectral centroid",
+            "AccY_Min",
+            "AccZ_Spectral centroid",
+            "AccZ_Standard deviation",
+            "AccZ_Variance",
+            "AccZ_Root mean square",
+            "AccX_Spectral centroid",
+            "AccY_Spectral centroid",
+            "Sound_Zero crossing rate",
+            "AccX_Min",
+            "AccX_Max",
+            "Sound_Max",
+            "Sound_Min",
+            "Sound_Root mean square",
+            "Sound_Standard deviation",
+            "Sound_Variance",
+            "AccX_Variance",
+            "AccX_Standard deviation",
+            "AccX_Root mean square",
+            "AccZ_Mean",
+            "AccX_Mean",
+            "AccY_Mean"
+        ],
+        "meta": [
+            "sensor_file",
+            "timestamp",
+            "time",
+            "ToolIdx",
+            "plate_id",
+            "DB_PASSES/NUMERO_OF",
+            "PassID",
+            "start_pos",
+            "end_pos",
+            "DB_PASSES/NUMERO_PASSE",
+            "timestamp_right",
+            "y",
+            "pass_type",
+            "index",
+            "DB_PASSES/COMPTEUR_RESET_PASSES"
+        ],
+        "target": "y"
+    },
+    "filepath": "./tsfel_extracted_v5.csv",
+    "evaluation_metrics": {
+        "MSE": 111.76178956615985,
+        "RMSE": 10.571744868571122,
+        "MAE": 7.395184900830707,
+        "R2_Score": 0.8234425867077544
+    }
+}

@@ -1,0 +1,7 @@
+pre-processing
+
+y = torque median / torque mean (specified in the name)
+
+n_windows per pass-file = 1
+
+complete means file without tsfresh feature selection

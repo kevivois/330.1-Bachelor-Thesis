@@ -1,0 +1,7 @@
+pre-processing from old data (the first datas that i have received)
+
+y = torque mean
+
+n_windows per pass-file = 10
+
+complete means file without tsfresh feature selection

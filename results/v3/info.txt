@@ -1,0 +1,9 @@
+Entrainement k-fold de TFT ET LSTM avec diverses versions (avec et sans sons,avec et san exo, avec et sans optuna)
+
+et données fenetrèes à 10 lignes par fichier passe
+
+n_window = 10
+y = Broche/StatusTorqueData.ActualTorque_Mean
+
+
+type de passes : Finishing,Pre-Finsishing

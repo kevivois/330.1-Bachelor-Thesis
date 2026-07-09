@@ -1,0 +1,110 @@
+{
+    "experiment_timestamp": "2026-07-02T11:16:14.371935",
+    "model_hyperparameters": {
+        "model_type": "TFT",
+        "input_chunk_length": 20,
+        "output_chunk_length": 1,
+        "hidden_size": 32,
+        "lstm_layers": 1,
+        "num_attention_heads": 2,
+        "batch_size": 32,
+        "dropout": 0.1,
+        "n_epochs": 50,
+        "learning_rate": 0.001
+    },
+    "dataset_splits": {
+        "train_tools": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            9
+        ],
+        "val_tools": [
+            10,
+            11
+        ],
+        "test_tools": [
+            6,
+            7,
+            8
+        ]
+    },
+    "columns": {
+        "features": [
+            "Axe_X_master/ActualVelocity_Max",
+            "Broche/StatusTorqueData.ActualTorque_Max",
+            "Axe_X_master/ActualVelocity_Variance",
+            "Axe_X_master/ActualVelocity_Standard deviation",
+            "Axe_X_master/ActualVelocity_Root mean square",
+            "Axe_X_master/ActualVelocity_Mean",
+            "Axe_X_master/ActualVelocity_Median",
+            "Broche/StatusTorqueData.ActualTorque_Root mean square",
+            "Broche/StatusTorqueData.ActualTorque_Median",
+            "Broche/StatusTorqueData.ActualTorque_Mean",
+            "Axe_X_master/ActualVelocity_Min",
+            "Axe_X_master/ActualPosition_Spectral roll-off",
+            "Axe_X_master/ActualPosition_Spectral centroid",
+            "Broche/StatusTorqueData.ActualTorque_Spectral centroid",
+            "Broche/StatusTorqueData.ActualTorque_Variance",
+            "Broche/StatusTorqueData.ActualTorque_Standard deviation",
+            "Broche/StatusTorqueData.ActualTorque_Min",
+            "Broche/ActualSpeed_Max",
+            "Broche/StatusTorqueData.ActualTorque_Spectral roll-off",
+            "Axe_X_master/ActualVelocity_Spectral centroid",
+            "Broche/ActualSpeed_Variance",
+            "Broche/ActualSpeed_Standard deviation",
+            "Broche/ActualSpeed_Root mean square",
+            "Broche/ActualSpeed_Mean",
+            "Broche/ActualSpeed_Min",
+            "Broche/ActualSpeed_Median",
+            "Axe_X_master/ActualPosition_Max",
+            "Axe_X_master/ActualPosition_Min",
+            "DB_PASSES/EPAISSEUR_BRUTE",
+            "Axe_X_master/ActualVelocity_Spectral roll-off",
+            "pass_type_Finishing",
+            "pass_type_Pre-Finishing",
+            "DB_PASSES/SELECTION_ALLIAGE_1.0",
+            "DB_PASSES/SELECTION_ALLIAGE_2.0",
+            "DB_PASSES/SELECTION_ALLIAGE_5.0",
+            "DB_PASSES/SELECTION_ALLIAGE_7.0",
+            "PassNumber",
+            "next_DB_PASSES/SELECTION_ALLIAGE_1.0",
+            "next_DB_PASSES/SELECTION_ALLIAGE_2.0",
+            "next_DB_PASSES/SELECTION_ALLIAGE_5.0",
+            "next_DB_PASSES/SELECTION_ALLIAGE_7.0",
+            "next_DB_PASSES/EPAISSEUR_BRUTE",
+            "next_Axe_X_master/ActualVelocity_Mean",
+            "next_Broche/ActualSpeed_Mean",
+            "next_pass_type_Finishing",
+            "next_pass_type_Pre-Finishing"
+        ],
+        "meta": [
+            "sensor_file",
+            "timestamp",
+            "time",
+            "ToolIdx",
+            "plate_id",
+            "DB_PASSES/NUMERO_OF",
+            "PassID",
+            "start_pos",
+            "end_pos",
+            "DB_PASSES/NUMERO_PASSE",
+            "timestamp_right",
+            "y",
+            "pass_type",
+            "index",
+            "DB_PASSES/COMPTEUR_RESET_PASSES"
+        ],
+        "target": "y"
+    },
+    "filepath": "./tsfel_extracted_v8_y_mean_torque.csv",
+    "evaluation_metrics": {
+        "MSE": 153970.87628563668,
+        "RMSE": 392.3912286043569,
+        "MAE": 241.19045920389067,
+        "R2_Score": -0.26199052964991343
+    }
+}
