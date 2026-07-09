@@ -1,3 +1,6 @@
+# Definition of the Temporal Fusion Transformer model used for sequence prediction.
+
+
 import json
 import polars as pl
 from darts import TimeSeries
@@ -90,6 +93,11 @@ class TFTModel(BaseModel):
     @staticmethod
     def get_formated_datetime():
         return datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
+    
+    ''''
+    Function used to train the TFT Model
+    
+    '''
     def train(self):
     
         X_past_train_raw, X_fut_train_raw, Y_train_raw = self.preprocess_to_darts(self.train_tools)
@@ -119,6 +127,10 @@ class TFTModel(BaseModel):
         self.test()
         return self.save()
     
+    
+    '''
+    Function used to infer a TFT Model 
+    '''    
     def infer(self, X_past: TimeSeries,X_future:TimeSeries, n_steps = 1):
         X_past_scaled = self.scaler_x_past.transform(X_past)
         X_future_scaled = self.scaler_x_future.transform(X_future)
@@ -127,6 +139,11 @@ class TFTModel(BaseModel):
         pred_df = pl.from_pandas(pred_ts.to_dataframe().reset_index())
         return pred_df
     
+    
+    '''
+    Function used to infer on the test tool set and output the results in metrics and a graph
+    
+    '''
     def test(self):
         X_past,X_future,Y  = self.preprocess_to_darts(self.test_tools)
         
@@ -240,12 +257,21 @@ class TFTModel(BaseModel):
     
     
     
+    '''
+    Function used to optimizie the model's parameters using 'optuna' : an optimized gridsearch framework
+    Adapted from https://unit8co.github.io/darts/userguide/hyperparameter_optimization.html
     
+    '''
     def optimize_parameters(self, n_trials=20, n_epochs_optuna=30):
         X_past_train_raw, X_fut_train_raw, Y_train_raw = self.preprocess_to_darts(self.train_tools)
         X_past_val_raw,X_fut_val_raw,Y_val_raw  = self.preprocess_to_darts(self.val_tools)
 
         
+        
+        '''
+        Function that is used at each epoch of the hyperparameters optimizations to train a complete TFT model and output it's rmse
+        
+        '''
         def objective(trial):
             input_chunk_length  = trial.suggest_int("input_chunk_length", 5, 25, step=5)
             hidden_size = trial.suggest_int("hidden_size", 16, 64, step=16)

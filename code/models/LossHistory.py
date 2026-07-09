@@ -1,4 +1,9 @@
 from lightning.pytorch.callbacks import Callback
+
+'''
+Class used to receive in callback the validation and train loss in a training of darts model and therefore used to plot
+This code has been developped with the help of Gemini
+'''
 class LossHistory(Callback):
     def __init__(self):
         self.train_losses = []

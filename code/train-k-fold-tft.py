@@ -1,11 +1,19 @@
+# This script trains and evaluates a Temporal Fusion Transformer model using k-fold cross-validation.
+
+
 import polars as pl
-from TFTModel import TFTModel
+from models.TFTModel import TFTModel
 from sklearn.model_selection import KFold
 from pathlib import Path
 import shutil
 import json
 import numpy as np
 import random
+
+
+'''
+Function used to train the TFT Model from models.TFTModel using a k-fold tools split method
+'''
 
 def train(model_type="TFT", data_path="", with_exogenous_variables=True, with_sound_columns=True, only_sound_columns=False, with_optuna=False, n_pre_process_window=10, params={}, target="",passes = ["Finishing", "Pre-Finishing"],base_path=""):
     
@@ -15,19 +23,19 @@ def train(model_type="TFT", data_path="", with_exogenous_variables=True, with_so
 
     experiment_name = f"{model_type}_{optuna}_{sound}_{exo}"
 
-    meta_cols = [
+    meta_cols = [    # meta columns
         "sensor_file", "timestamp", "time", "ToolIdx", "plate_id",
         "DB_PASSES/NUMERO_OF", "PassID", "start_pos", "end_pos",
         "DB_PASSES/NUMERO_PASSE", "timestamp_right", "y", "pass_type",
         "index", "DB_PASSES/COMPTEUR_RESET_PASSES"
     ]
-    sound_prefixes = ["Sound", "AccZ", "AccY", "AccX"]
-    exogenous_variables = [
+    sound_prefixes = ["Sound", "AccZ", "AccY", "AccX"]   # Sound columns
+    exogenous_variables = [ # Exogenous variables
         "DB_PASSES/SELECTION_ALLIAGE", "DB_PASSES/EPAISSEUR_BRUTE",
         "Axe_X_master/ActualVelocity_Mean",
         "Broche/ActualSpeed_Mean", "pass_type"
     ]
-    dummies_cols = [
+    dummies_cols = [ # Categorical columns
         "pass_type", "DB_PASSES/SELECTION_ALLIAGE",
         "next_pass_type", "next_DB_PASSES/SELECTION_ALLIAGE"
     ]
@@ -41,7 +49,7 @@ def train(model_type="TFT", data_path="", with_exogenous_variables=True, with_so
     if with_exogenous_variables:
         for c in exogenous_variables:
             data = data.with_columns(
-                pl.col(c).shift(-1).over("ToolIdx").alias(f"next_{c}")
+                pl.col(c).shift(-1).over("ToolIdx").alias(f"next_{c}") # .over here to remove data that predict the next tool , remove tool-transition rows therefore data-leakage
             )
         data = data.drop_nulls(subset=[f"next_{c}" for c in exogenous_variables])
 
@@ -50,12 +58,12 @@ def train(model_type="TFT", data_path="", with_exogenous_variables=True, with_so
 
     feature_cols = [c for c in data.columns if c not in meta_cols]
 
-    if only_sound_columns:
+    if only_sound_columns: # if true : the features will be only sound columns
         feature_cols = [
             c for c in feature_cols
             if any(c.startswith(p) for p in sound_prefixes)
         ]
-    elif not with_sound_columns:
+    elif not with_sound_columns: # if true : sound columns will be removed of the features
         feature_cols = [
             c for c in feature_cols
             if not any(c.startswith(p) for p in sound_prefixes)
@@ -64,7 +72,7 @@ def train(model_type="TFT", data_path="", with_exogenous_variables=True, with_so
     cols_to_use = feature_cols + [c for c in meta_cols if c in data.columns]
     data = data.select(cols_to_use)
 
-    kf = KFold(n_splits=4, shuffle=False)
+    kf = KFold(n_splits=4, shuffle=False)  #K-fold using 4 splits
     folder = Path(base_path + f"/k-fold-{experiment_name}-{TFTModel.get_formated_datetime()}")
     folder.mkdir(exist_ok=True, parents=True)
 
@@ -78,10 +86,12 @@ def train(model_type="TFT", data_path="", with_exogenous_variables=True, with_so
             "only_sound_columns": only_sound_columns
         }
     }
-    random.seed(42)
+    random.seed(42) # seed to ensure reproductibility
     for fold_idx, (train_idx, test_idx) in enumerate(kf.split(X=tool_ids)):
         test_tools  = [tool_ids[i] for i in test_idx]
         train_tools = [tool_ids[i] for i in train_idx]
+        
+        # Randomly choose 2 tools for the validation tools set
         val_tools   = random.sample(train_tools, 2)
         train_tools = [t for t in train_tools if t not in val_tools]
 
@@ -135,6 +145,11 @@ def train(model_type="TFT", data_path="", with_exogenous_variables=True, with_so
 
 
 if __name__ == "__main__":
+    
+    '''
+    Training of the TFT model in differents configuration and parameters
+    
+    '''
 
     params = {
         "input_chunk_length":  20,
@@ -148,11 +163,12 @@ if __name__ == "__main__":
     }
     
     datasets = [
-        ("./tsfel_extracted_v5.csv", 10,"./runs/v6/10"),
-        ("./tsfel_extracted_v8_y_mean_torque.csv", 1,"./runs/v6/1"),
+        ("./tsfel_extracted_v5.csv", 10,"./runs/v6/10"),  # Using data that has beed reduced to 10 rows per pass file
+        ("./tsfel_extracted_v8_y_mean_torque.csv", 1,"./runs/v6/1"),  # Using data that has been reduced to 1 row per pass file
     ]
 
     configs = [
+        # model_type, with_exo, with_sound, only_sound, with_optuna, passes type3
         ("TFT", True,  True,  False, False, ["Finishing"]),
         ("TFT", True,  False, False, False, ["Finishing"]),
         ("TFT", True,  True,  False, False, ["Pre-Finishing"]),

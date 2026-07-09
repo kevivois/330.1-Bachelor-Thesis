@@ -1,3 +1,6 @@
+# This script computes and visualizes 3D PCA projections for each tool and pass type.
+
+
 import os
 import polars as pl
 import matplotlib.pyplot as plt
@@ -13,21 +16,31 @@ def compute_pca_3d(data:pl.LazyFrame):
     if len(data) == 0:
         return None, None, None
     
+    # columns to exclude from features
     meta_cols = ["id", "sensor_file", "timestamp", "time", "ToolIdx", "PassNumber", "pass_type","y", "DB_PASSES/NUMERO_OF","DB_PASSES/SELECTION_ALLIAGE" ,"PassID", "start_pos", "end_pos", "DB_PASSES/NUMERO_PASSE", "timestamp_right"]
     feature_cols = [c for c in data.columns if c not in meta_cols]
     
+    
+    # minimum sample
     if len(data) < 5:
         return None, None, None
     
     X = data.select(feature_cols).to_numpy()
     X_scaled = StandardScaler().fit_transform(X)
     
+    
+    # fit PCA with 3 components for 3D visualiation
     pca = PCA(n_components=3)  
     X_pca = pca.fit_transform(X_scaled)
     var_exp = pca.explained_variance_ratio_
     
     return X_pca, var_exp, np.arange(len(data))
     
+    
+    
+'''
+Function used to loop over all passes and tools and call the 'compute_pca_3d' function to plot the corresponding pca
+'''
 def plot(filename=""):
     os.makedirs("images", exist_ok=True)
     
@@ -37,7 +50,7 @@ def plot(filename=""):
     result = result.filter(pl.col("pass_type").is_in(passes))
     tools = result.select(pl.col("ToolIdx")).unique().collect()["ToolIdx"].to_list()
     tools.sort()
-    pass_types = result.select(pl.col("pass_type")).unique().collect()["pass_type"].to_list()
+    pass_types = result.select(pl.col("pass_type")).unique().collect()["pass_type"].to_list() # get all unique pass dynamically (should be the same as 'passes')
     for p in pass_types:
         for t in tools:
             data = result.filter((pl.col("ToolIdx") == t) & (pl.col("pass_type") == p))
@@ -48,6 +61,7 @@ def plot(filename=""):
                 fig = plt.figure(figsize=(10, 8))
                 ax = fig.add_subplot(111, projection='3d')
                 
+                # 3D scatter colored by time to show progression along the pass
                 sc = ax.scatter(
                     X_pca[:, 0], X_pca[:, 1], X_pca[:, 2], 
                     c=timestamp, 

@@ -1,9 +1,5 @@
-"""
-Pre-processing pipeline for sound sensor data and torque data.
-- Reads sensor (high-rate) and torque (low-rate) parquet files per pass.
-- Splits each file into N_WINDOW_PER_FILE windows, extracts TSFEL features,
-  aligns sensor and torque features, select remove redondant and low-information features using 'select_features' from tsfresh and outputs a CSV for training.
-"""
+# This script preprocesses sensor and torque data, extracts features, aligns them, and exports a training CSV file.
+
 
 
 
@@ -23,20 +19,20 @@ from tsfresh import select_features
 import pathlib
 
 
-# Limit multithreading for numeric libs so worker processes do not spawn many threads.
-# Keeps per-process CPU usage predictable when using ProcessPoolExecutor.
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
-os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
-os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
+# This part has been developped with the help of Gemini
+# to prevent over-parallelism , limit each process at one thread
+os.environ["OMP_NUM_THREADS"] = "1"  # OpenMP limit
+os.environ["MKL_NUM_THREADS"] = "1" # Intel MKL Limit
+os.environ["OPENBLAS_NUM_THREADS"] = "1" # OpenBLAS limit
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # Accelerate/vecLib Limit
+os.environ["NUMEXPR_NUM_THREADS"] = "1" # Numexpr Limit
+
 
 N_WINDOW_PER_FILE = 1
 
 SOUND_SENSOR_FREQUENCY = 40000
 TORQUE_SENSOR_FREQUENCY = 10
-
-
 
 
 

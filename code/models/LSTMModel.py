@@ -1,3 +1,7 @@
+# Definition of the LSTM model used for sequence prediction.
+
+
+
 import json
 import polars as pl
 from darts import TimeSeries
@@ -47,7 +51,8 @@ class LSTMModel(BaseModel):
             "n_epochs": n_epochs
         }
         
-        # Initialization of the LSTM model using the class 'BlockRNNModel' from darts , see https://unit8co.github.io/darts/generated_api/darts.models.forecasting.block_rnn_model.html#darts.models.forecasting.block_rnn_model.BlockRNNModel
+        # Initialization of the LSTM model using the class 'BlockRNNModel' from darts
+        # Adapted from https://unit8co.github.io/darts/generated_api/darts.models.forecasting.block_rnn_model.html#darts.models.forecasting.block_rnn_model.BlockRNNModel
         self.model = BlockRNNModel(
             model=model,
             input_chunk_length=input_chunk_length,
@@ -83,8 +88,10 @@ class LSTMModel(BaseModel):
     
     
     '''
-    Function used to optimize and perform an optimized gridsearch of hyperparameters using optuna , see https://unit8co.github.io/darts/userguide/hyperparameter_optimization.html and https://optuna.org/
+    Function used to optimize and perform an optimized gridsearch of hyperparameters using optuna, see and https://optuna.org/
+    Adapted from https://unit8co.github.io/darts/userguide/hyperparameter_optimization.html
     '''
+    
     def optimize_parameters(self, n_trials: int = 20, n_epochs_optuna: int = 30):
         try:
             self.data.collect_schema()
@@ -101,7 +108,7 @@ class LSTMModel(BaseModel):
 
         
         '''
-            Function used by optuna at each step to perform a model training and calculate loss and scores in output
+            Function used by optuna at each step to perform a model complete training and calculate loss and scores in output
         '''
         def objective(trial):
             input_chunk_length = trial.suggest_int("input_chunk_length", 5, 60, step=5)
@@ -222,7 +229,11 @@ class LSTMModel(BaseModel):
         )
         
         return best
-
+    
+    
+    '''
+    Function used to train the LSTM Model
+    '''
     def train(self):
         has_exo = any(c.startswith("next_") for c in self.data.columns)
         if has_exo:
@@ -270,7 +281,7 @@ class LSTMModel(BaseModel):
 
 
     '''
-    function used to infer on the trained (or imported model)
+    Function used to infer on the trained (or imported model)
     
     '''
     def infer(self, X_past: TimeSeries, X_future: TimeSeries = None, n_steps: int = 1):
